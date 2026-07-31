@@ -6,14 +6,24 @@
 
 ## 一、上传文件并开启 Pages（约 2 分钟）
 
-1. 登录 GitHub → 右上角 **New repository**，仓库名随便（如 `lingji`），**Public**，**不要**勾选 Add README。
+1. 登录 GitHub → 右上角 **New repository**，仓库名填 `lingji`，**Public**，**不要**勾选 Add README（勾了会产生冲突提交）。
 2. 进入仓库 → **Add file → Upload files**，把这个目录里的**全部内容**拖进去上传：
    - `index.html`、`manifest.webmanifest`、`sw.js`、`.nojekyll`
    - `assets/`（含 css、生成的 png/svg 图标）
    - `js/`（含 app.js、store.js、views/、data/）
    - （`serve.js`、`tools/`、`test/` 是开发用，可不传，传了也无害）
 3. 提交后 → **Settings → Pages** → Source 选 **Deploy from a branch** → Branch 选 **main / master**，目录 **/ (root)** → Save。
-4. 等 1 分钟，访问 `https://你的用户名.github.io/lingji/` 即可。建议「添加到主屏幕」安装为 App。
+4. 等 1 分钟，访问 **https://hanlingzhan.github.io/lingji/** 即可。建议「添加到主屏幕」安装为 App。
+
+### 命令行推送（本地仓库已初始化好，直接复制运行）
+
+```bash
+cd C:/Users/zhl/Desktop/work_zhl/workbench
+git remote add origin https://github.com/HanlingZhan/lingji.git
+git push -u origin main
+```
+
+推送时若弹窗要登录，选 **Sign in with your browser** 即可；或用 PAT 当密码。
 
 ## 二、用同一个仓库做云同步后端（数据也在你手里）
 
@@ -23,7 +33,7 @@
 2. 打开「灵记 → 设置 → 多端云同步」：
    - 启用云端同步 ✅
    - 后端类型：**GitHub**
-   - 端点：`https://api.github.com/repos/你的用户名/lingji/contents/data/state.json`
+   - 端点：`https://api.github.com/repos/HanlingZhan/lingji/contents/data/state.json`
    - 令牌：GitHub **Personal Access Token**（勾 `repo` 权限，Fine-grained 也行，需有该仓库的 contents 读写）。生成地址：`GitHub → Settings → Developer settings → Personal access tokens`。
    - 保存 → 点「⬆ 推送到云端」测试。
 3. Windows / 安卓 / iPad 三端都这样配同一个仓库，数据按「最后写入优先」自动合并。
