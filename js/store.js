@@ -143,7 +143,8 @@ class Store extends EventTarget {
   }
   async push() {
     const s = this.state.settings.sync;
-    if (!s.enabled || !s.endpoint) return { ok: false, msg: '未配置同步端点' };
+    if (!s.enabled) return { ok: false, msg: '请先在上方勾选「启用云端同步」并填写端点/令牌后点保存' };
+    if (!s.endpoint) return { ok: false, msg: '请填写同步端点' };
     if (!navigator.onLine) return { ok: false, msg: '离线，已加入待同步队列' };
     try {
       try { await this.pull(); } catch (e) { /* 远端可能为空 */ }

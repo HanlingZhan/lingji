@@ -127,10 +127,8 @@ function rerender() {
   };
   $('#reqPerm').onclick = async () => { await requestPermission(); rerender(); };
   $('#testNotif').onclick = () => { pushNotif('🔔 测试通知', '如果你看到系统弹窗，说明桌面提醒已生效', 'test', true); toast('已发送'); };
-  $('#saveSync').onclick = () => {
-    store.update(s => Object.assign(s.settings.sync, { enabled: $('#syEn').checked, type: $('#syType').value, endpoint: $('#syUrl').value.trim(), token: $('#syTk').value.trim(), auto: $('#syAuto').checked }));
-    toast('同步配置已保存', 'ok'); rerender();
-  };
+  const saveSyncCfg = () => store.update(s => Object.assign(s.settings.sync, { enabled: $('#syEn').checked, type: $('#syType').value, endpoint: $('#syUrl').value.trim(), token: $('#syTk').value.trim(), auto: $('#syAuto').checked }));
+  $('#saveSync').onclick = () => { saveSyncCfg(); toast('同步配置已保存', 'ok'); rerender(); };
   const hints = {
     generic: '端点填任意支持 GET 拉取 / PUT 推送 JSON 的地址（如 Cloudflare Workers KV、Supabase Storage、jsonbin）。令牌作为 Bearer 发送，可留空。',
     github: '端点填仓库数据文件地址：https://api.github.com/repos/你的用户名/仓库名/contents/data/state.json （需先建仓库并建 data/ 目录）。令牌填有 repo 权限的 GitHub Personal Access Token。同一仓库也可开启 GitHub Pages 托管本应用，实现「托管+同步」一体。',
@@ -138,8 +136,8 @@ function rerender() {
   };
   const updHint = () => { const t = $('#syType').value; $('#syHint').textContent = hints[t] || ''; };
   $('#syType').onchange = updHint; updHint();
-  $('#pullBtn').onclick = async () => { try { await store.pull(); toast('已从云端拉取并合并', 'ok'); rerender(); } catch (e) { toast('拉取失败：' + e.message, 'err'); } };
-  $('#pushBtn').onclick = async () => { const r = await store.push(); toast(r.ok ? '已推送到云端' : '推送失败：' + r.msg, r.ok ? 'ok' : 'err'); rerender(); };
+  $('#pullBtn').onclick = async () => { saveSyncCfg(); try { await store.pull(); toast('已从云端拉取并合并', 'ok'); rerender(); } catch (e) { toast('拉取失败：' + e.message, 'err'); } };
+  $('#pushBtn').onclick = async () => { saveSyncCfg(); const r = await store.push(); toast(r.ok ? '已推送到云端' : '推送失败：' + r.msg, r.ok ? 'ok' : 'err'); rerender(); };
   $('#expAll').onclick = () => { download(`ScholarHub备份_${ymd(new Date())}.json`, store.export()); toast('备份已导出', 'ok'); };
   $('#impAll').onclick = () => {
     modal({
