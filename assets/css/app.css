@@ -285,6 +285,8 @@ table.tt td:first-child,table.tt th:first-child{width:66px;text-align:center;bac
 
 .only-mobile{display:none}
 .tabbar{display:none}
+.fab{display:none}
+.fab-sheet{display:none}
 
 /* ---------- 平板 ---------- */
 @media(max-width:1180px){
@@ -329,6 +331,17 @@ table.tt td:first-child,table.tt th:first-child{width:66px;text-align:center;bac
   .tabbar button{flex:1;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--muted);padding:4px 0;cursor:pointer}
   .tabbar button .ico{font-size:18px}
   .tabbar button.active{color:var(--blue-600);font-weight:600}
+  /* 悬浮新建按钮：手机端显示，顶替顶栏的「快速新建」，更像原生 App */
+  #quickAddBtn{display:none}
+  .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));width:54px;height:54px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--blue-600),var(--blue-500));color:#fff;font-size:26px;line-height:1;box-shadow:0 8px 22px rgba(21,101,192,.42);z-index:80;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .fab:active{transform:scale(.94)}
+  .fab-sheet{display:flex;flex-direction:column;gap:4px;position:fixed;right:16px;bottom:calc(140px + env(safe-area-inset-bottom));z-index:80;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:6px;box-shadow:var(--shadow-lg);width:152px}
+  .fab-sheet button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;padding:11px 12px;border-radius:10px;cursor:pointer;font-size:13.5px;color:var(--ink)}
+  .fab-sheet button:active{background:var(--blue-050)}
+  /* 底部导航更精致 */
+  .tabbar{box-shadow:0 -2px 16px rgba(16,42,80,.10)}
+  .tabbar button{font-size:11px}
+  .tabbar button .ico{font-size:20px}
   .stat b{font-size:19px}
 
   /* 课表移动端：单日纵向时间线（替代 7 列挤在一起的横向大表） */

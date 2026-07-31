@@ -1,5 +1,5 @@
 // 灵记 Service Worker —— 缓存应用壳，支持离线使用。
-const CACHE = 'lingji-v4';
+const CACHE = 'lingji-v5';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   'assets/css/app.css',

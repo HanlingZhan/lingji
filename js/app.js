@@ -19,19 +19,22 @@ import { applyBg } from './views/settings.js';
 
 export const ROUTES = {
   dashboard: { icon: '🏠', name: '工作台', sub: '你的一站式科研与生活中枢', mod: Dashboard, group: '概览', tab: true },
-  calendar: { icon: '📅', name: '日历与提醒', sub: '日 / 周 / 月 / 年多视图 · 无限期远期提醒', mod: Calendar, group: '概览', tab: true },
+  calendar: { icon: '📅', name: '日历与提醒', sub: '日 / 周 / 月 / 年多视图 · 无限期远期提醒', mod: Calendar, group: '概览', tab: false },
   board: { icon: '🗂️', name: '事项看板', sub: '个人事务 · 课程任务 · 科研进度 · JK', mod: Board, group: '概览', tab: true },
-  papers: { icon: '📄', name: '论文抓取', sub: 'arXiv / CVF / OpenReview / PwC / Scholar 定向聚合', mod: Papers, group: '科研', tab: true },
-  news: { icon: '📡', name: 'AI 前沿资讯', sub: '行业动态 · 顶会节点 · 开源项目', mod: News, group: '科研' },
+  papers: { icon: '📄', name: '论文抓取', sub: 'arXiv / CVF / OpenReview / PwC / Scholar 定向聚合', mod: Papers, group: '科研', tab: false },
+  news: { icon: '📡', name: 'AI 前沿资讯', sub: '行业动态 · 顶会节点 · 开源项目', mod: News, group: '科研', tab: true },
   schedule: { icon: '📚', name: '课程表', sub: '按周次录入 · Excel 批量导入 · 冲突检测', mod: Schedule, group: '学习' },
   jobs: { icon: '💼', name: '招聘资讯', sub: '日常大厂实习 · 2029 校招 · 我的追踪', mod: Jobs, group: '学习' },
   words: { icon: '🔤', name: '单词巧记', sub: '六级 / 雅思 / 托福 · 艾宾浩斯复习', mod: Words, group: '学习' },
-  anniversary: { icon: '💝', name: '纪念日与礼物', sub: '倒计时 · 生理周期 · 智能礼物推荐', mod: Anniversary, group: '生活', tab: true },
-  fitness: { icon: '💪', name: '健身计划', sub: '分阶段减脂 · 食谱与追踪 · 跟练链接', mod: Fitness, group: '生活', tab: true },
+  anniversary: { icon: '💝', name: '纪念日与礼物', sub: '倒计时 · 生理周期 · 智能礼物推荐', mod: Anniversary, group: '生活', tab: false },
+  fitness: { icon: '💪', name: '健身计划', sub: '分阶段减脂 · 食谱与追踪 · 跟练链接', mod: Fitness, group: '生活', tab: false },
   settings: { icon: '⚙️', name: '设置与同步', sub: '多端同步 · 数据备份 · 提醒偏好', mod: Settings, group: '生活' }
 };
 
 let current = '';
+
+// 底部导航用短标签，避免手机上拥挤
+const TAB_SHORT = { dashboard: '工作台', board: '看板', news: '资讯', schedule: '课表', papers: '论文', calendar: '日历', anniversary: '纪念日', fitness: '健身', jobs: '招聘', words: '单词', settings: '设置' };
 
 function renderNav() {
   const groups = {};
@@ -41,7 +44,7 @@ function renderNav() {
     ${items.map(([k, v]) => `<button class="nav-item" data-route="${k}"><span class="ico">${v.icon}</span><span>${v.name}</span><span class="cnt" data-cnt="${k}" hidden></span></button>`).join('')}
   `).join('');
   $('#tabbar').innerHTML = Object.entries(ROUTES).filter(([, v]) => v.tab)
-    .map(([k, v]) => `<button data-route="${k}"><span class="ico">${v.icon}</span>${v.name.replace('与提醒', '').replace('事项', '')}</button>`).join('')
+    .map(([k, v]) => `<button data-route="${k}"><span class="ico">${v.icon}</span>${TAB_SHORT[k] || v.name}</button>`).join('')
     + `<button data-route="more"><span class="ico">⋯</span>更多</button>`;
 }
 
@@ -83,6 +86,13 @@ function openMore() {
 function openDrawer() { $('#sidebar').classList.add('open'); $('#drawerMask').classList.add('on'); }
 function closeDrawer() { $('#sidebar').classList.remove('open'); $('#drawerMask').classList.remove('on'); }
 
+// 手机端切回前台 / 定时自动拉取，保证多端实时同步
+async function autoPull() {
+  const s = S().settings.sync;
+  if (!s.enabled || !s.endpoint || !navigator.onLine) return;
+  try { await store.pull(); go(current); } catch { }
+}
+
 // ---- 通知面板 ----
 function renderNotif() {
   const list = S().notifications.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 40);
@@ -119,10 +129,14 @@ function bind() {
     const nav = e.target.closest('[data-route]');
     if (nav) { go(nav.dataset.route); return; }
     if (!e.target.closest('.quick-add')) $('#quickMenu').classList.remove('open');
+    if (!e.target.closest('#fab') && !e.target.closest('#fabSheet')) $('#fabSheet').hidden = true;
     if (!e.target.closest('#notifPanel') && !e.target.closest('#bellBtn')) $('#notifPanel').hidden = true;
   });
   $('#quickAddBtn').onclick = e => { e.stopPropagation(); $('#quickMenu').classList.toggle('open'); };
   $('#quickMenu').onclick = e => { const b = e.target.closest('[data-qa]'); if (b) { $('#quickMenu').classList.remove('open'); quickAdd(b.dataset.qa); } };
+  // 移动端悬浮新建按钮 + 动作面板
+  $('#fab').onclick = e => { e.stopPropagation(); $('#fabSheet').hidden = !$('#fabSheet').hidden; };
+  $('#fabSheet').onclick = e => { const b = e.target.closest('[data-qa]'); if (b) { $('#fabSheet').hidden = true; quickAdd(b.dataset.qa); } };
   $('#openDrawer').onclick = openDrawer;
   $('#closeDrawer').onclick = closeDrawer;
   $('#drawerMask').onclick = closeDrawer;
@@ -160,6 +174,9 @@ async function boot() {
   if (S().settings.sync.enabled && navigator.onLine) {
     try { await store.pull(); toast('已从云端同步最新数据', 'ok'); go(current); } catch { }
   }
+  // 切回前台 / 定时自动拉取，解决「网页加了内容手机看不到」的问题
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoPull(); });
+  setInterval(autoPull, 60000);
   // 注册 Service Worker（PWA：可「添加到主屏幕」、离线可用）。仅 http(s)/localhost。
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     try { await navigator.serviceWorker.register('./sw.js'); } catch (e) { console.warn('SW 注册失败', e); }
