@@ -146,14 +146,40 @@ class Store extends EventTarget {
     if (!s.enabled) return { ok: false, msg: '请先在上方勾选「启用云端同步」并填写端点/令牌后点保存' };
     if (!s.endpoint) return { ok: false, msg: '请填写同步端点' };
     if (!navigator.onLine) return { ok: false, msg: '离线，已加入待同步队列' };
+    if (this._pushing) return this._pushing;              // 同一时刻只允许一个推送，避免版本冲突
+    clearTimeout(this._t);                                // 取消排队中的自动推送
+    this._pushing = (async () => {
+      try {
+        try { await this.pull(); } catch (e) { /* 远端可能为空 */ }
+        await pushRemote(s, this);
+        this.state.meta.lastSync = now();
+        this.queue = []; localStorage.setItem(QKEY, '[]');
+        localStorage.setItem(KEY, JSON.stringify(this.state));
+        this.emit('sync'); return { ok: true };
+      } catch (e) { this.emit('syncerr'); return { ok: false, msg: e.message }; }
+      finally { this._pushing = null; }
+    })();
+    return this._pushing;
+  }
+  // 连通性自检：返回可读的诊断结论
+  async diagnose() {
+    const s = this.state.settings.sync;
+    if (!s.endpoint) return { ok: false, msg: '还没填写同步端点' };
+    if (s.type === 'github') {
+      const m = /^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+\/contents\/.+/.test(s.endpoint);
+      if (!m) return { ok: false, msg: '端点格式不对，应形如 https://api.github.com/repos/用户名/仓库名/contents/data/state.json' };
+      if (!s.token) return { ok: false, msg: '还没填写访问令牌' };
+    }
     try {
-      try { await this.pull(); } catch (e) { /* 远端可能为空 */ }
-      await pushRemote(s, this);
-      this.state.meta.lastSync = now();
-      this.queue = []; localStorage.setItem(QKEY, '[]');
-      localStorage.setItem(KEY, JSON.stringify(this.state));
-      this.emit('sync'); return { ok: true };
-    } catch (e) { this.emit('syncerr'); return { ok: false, msg: e.message }; }
+      const r = await fetch(s.endpoint, { headers: s.type === 'github' ? { Authorization: 'Bearer ' + s.token, Accept: 'application/vnd.github+json' } : (s.token ? { Authorization: (s.type === 'webdav' ? 'Basic ' : 'Bearer ') + s.token } : {}) });
+      if (r.status === 404) return { ok: true, msg: '连接正常：云端数据文件还不存在，首次推送会自动创建' };
+      if (!r.ok && s.type === 'github') throw await ghError(r);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return { ok: true, msg: '连接正常，云端数据文件可读写' };
+    } catch (e) {
+      const net = /Failed to fetch|NetworkError|Load failed/i.test(e.message);
+      return { ok: false, msg: net ? '网络请求被拦截（可能是断网、代理或浏览器插件拦截了跨域请求）' : e.message };
+    }
   }
 
   export() { return JSON.stringify({ ...this.state, _exportedAt: new Date().toISOString() }, null, 2); }
@@ -185,21 +211,52 @@ async function genPut(s, state) {
   const r = await fetch(s.endpoint, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(s.token ? { Authorization: 'Bearer ' + s.token } : {}) }, body: JSON.stringify(state) });
   if (!r.ok) throw new Error('HTTP ' + r.status);
 }
+// GitHub 报错统一转成看得懂的中文
+async function ghError(r) {
+  let detail = '';
+  try { const j = await r.json(); detail = j.message || ''; } catch { }
+  const hint = {
+    401: '令牌无效或已过期（请在 GitHub 重新生成 Fine-grained token）',
+    403: '令牌权限不足，需要 Contents 的「Read and write」权限；或触发了接口限流',
+    404: '仓库或文件路径不对（也可能是令牌未授权访问该仓库）',
+    409: '云端版本已变化，冲突',
+    422: '缺少文件版本号（sha）'
+  }[r.status] || '请求失败';
+  return new Error(`GitHub ${r.status}：${hint}${detail ? '（' + detail + '）' : ''}`);
+}
+// 取远端文件当前 sha；文件不存在返回 null
+async function ghSha(s) {
+  const r = await fetch(s.endpoint, { headers: { Authorization: 'Bearer ' + s.token, Accept: 'application/vnd.github+json' } });
+  if (r.status === 404) return null;
+  if (!r.ok) throw await ghError(r);
+  return (await r.json()).sha;
+}
 async function ghGet(s, store) {
   const r = await fetch(s.endpoint, { headers: { Authorization: 'Bearer ' + s.token, Accept: 'application/vnd.github+json' } });
   if (r.status === 404) return null;               // 数据文件尚不存在
-  if (!r.ok) throw new Error('GitHub HTTP ' + r.status);
+  if (!r.ok) throw await ghError(r);
   const j = await r.json();
   store.state.meta._ghSha = j.sha;
-  return b64decodeUnicode(j.content);
+  const text = b64decodeUnicode(j.content || '');
+  if (!text.trim()) return null;                   // 空文件视为无远端数据
+  try { return JSON.parse(text); } catch { throw new Error('云端数据不是合法 JSON，已跳过合并'); }
 }
 async function ghPut(s, state, store) {
-  let sha = store.state.meta._ghSha;
-  if (!sha) { try { const r = await fetch(s.endpoint, { headers: { Authorization: 'Bearer ' + s.token, Accept: 'application/vnd.github+json' } }); if (r.ok) sha = (await r.json()).sha; } catch { } }
-  const body = { message: 'sync 灵记 ' + new Date().toISOString().slice(0, 19), content: b64encodeUnicode(JSON.stringify(state)) };
-  if (sha) body.sha = sha;
-  const r = await fetch(s.endpoint, { method: 'PUT', headers: { Authorization: 'Bearer ' + s.token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!r.ok) throw new Error('GitHub HTTP ' + r.status);
+  const payload = JSON.stringify(state, (k, v) => k === '_ghSha' ? undefined : v);
+  const body = { message: 'sync 灵记 ' + new Date().toISOString().slice(0, 19), content: b64encodeUnicode(payload) };
+  // sha 优先用上次写入/读取返回的值：GitHub 写入后短时间内 GET 可能仍返回旧 sha
+  let sha = store.state.meta._ghSha || await ghSha(s);
+  let r;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (sha) body.sha = sha; else delete body.sha;
+    r = await fetch(s.endpoint, { method: 'PUT', headers: { Authorization: 'Bearer ' + s.token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (r.ok) break;
+    if (r.status !== 409 && r.status !== 422) break;
+    // 版本冲突：等待远端一致性收敛后重取 sha 再试
+    await new Promise(res => setTimeout(res, 400 * (attempt + 1)));
+    sha = await ghSha(s);
+  }
+  if (!r.ok) throw await ghError(r);
   try { store.state.meta._ghSha = (await r.json()).content.sha; } catch { }
 }
 async function wdGet(s) {

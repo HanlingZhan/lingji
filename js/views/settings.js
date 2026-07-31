@@ -69,6 +69,7 @@ function rerender() {
       <label class="fld" style="flex-direction:row;align-items:center;gap:8px;margin-bottom:10px"><input type="checkbox" id="syAuto" ${sy.auto ? 'checked' : ''}><span>数据变更后自动推送（防抖 2.5 秒）</span></label>
       <div class="row">
         <button class="btn solid" id="saveSync">保存配置</button>
+        <button class="btn" id="testSync">🔍 测试连接</button>
         <button class="btn" id="pullBtn">⬇ 从云端拉取</button>
         <button class="btn" id="pushBtn">⬆ 推送到云端</button>
         <span class="small muted">${st.meta.lastSync ? '上次同步 ' + fmtAgo(st.meta.lastSync) : '尚未同步'}</span>
@@ -136,8 +137,24 @@ function rerender() {
   };
   const updHint = () => { const t = $('#syType').value; $('#syHint').textContent = hints[t] || ''; };
   $('#syType').onchange = updHint; updHint();
-  $('#pullBtn').onclick = async () => { saveSyncCfg(); try { await store.pull(); toast('已从云端拉取并合并', 'ok'); rerender(); } catch (e) { toast('拉取失败：' + e.message, 'err'); } };
-  $('#pushBtn').onclick = async () => { saveSyncCfg(); const r = await store.push(); toast(r.ok ? '已推送到云端' : '推送失败：' + r.msg, r.ok ? 'ok' : 'err'); rerender(); };
+  $('#testSync').onclick = async () => {
+    saveSyncCfg(); const b = $('#testSync'); const old = b.textContent;
+    b.disabled = true; b.textContent = '检测中…';
+    const r = await store.diagnose();
+    b.disabled = false; b.textContent = old;
+    toast((r.ok ? '✅ ' : '❌ ') + r.msg, r.ok ? 'ok' : 'err');
+  };
+  $('#pullBtn').onclick = async () => {
+    saveSyncCfg(); const b = $('#pullBtn'); b.disabled = true;
+    try { await store.pull(); toast('已从云端拉取并合并', 'ok'); rerender(); }
+    catch (e) { toast('拉取失败：' + e.message, 'err'); b.disabled = false; }
+  };
+  $('#pushBtn').onclick = async () => {
+    saveSyncCfg(); const b = $('#pushBtn'); b.disabled = true;
+    const r = await store.push();
+    toast(r.ok ? '已推送到云端' : '推送失败：' + r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) rerender(); else b.disabled = false;
+  };
   $('#expAll').onclick = () => { download(`ScholarHub备份_${ymd(new Date())}.json`, store.export()); toast('备份已导出', 'ok'); };
   $('#impAll').onclick = () => {
     modal({
