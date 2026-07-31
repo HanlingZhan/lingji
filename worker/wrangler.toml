@@ -1,0 +1,5 @@
+name = "lingji-proxy"
+main = "index.js"
+compatibility_date = "2024-09-23"
+# 部署：在本地安装 wrangler 后执行 `wrangler deploy`；或在 Cloudflare 控制台粘贴 index.js 内容。
+# 部署后会得到一个 https://lingji-proxy.<你的子域>.workers.dev 地址，把它填进 App「设置 → 后端代理 URL」。

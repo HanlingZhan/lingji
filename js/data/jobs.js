@@ -58,3 +58,56 @@ export const CAMPUS_TARGETS = [
   { company: '国家电网（天津）', city: '天津', type: '国企', tag: 'IT / 电力', url: 'https://zhaopin.sgcc.com.cn', note: '天津电力，稳定高福利' },
   { company: '中国航天科技集团（天津）', city: '天津', type: '国企', tag: '航天 / 软件', url: 'https://www.spacechina.com', note: '一院/五院天津基地，航天软件/控制' }
 ];
+
+// ============ 腾讯实时岗位快照（由 tencent-campus-recruit 技能抓取自 join.qq.com）============
+// 静态站无法实时刷新腾讯岗位，故以「快照 + 官网直达」呈现；岗位会动态变化，点链接看最新。
+export const TENCENT_SNAPSHOT = {
+  fetchedAt: '2026-07-31',
+  note: '腾讯 AI / 计算机视觉 / 多模态 / 大模型方向的校招与实习岗位快照，来自腾讯校招官网 join.qq.com。优图实验室（上海）是腾讯 CV/多模态研究核心，与本方向高度相关。',
+  items: [
+    { title: '优图实验室-原生多模态预训练技术研究', unit: '优图实验室', dir: '多模态', cities: '上海', url: 'https://join.qq.com/post_detail.html?postid=1280227308716025856' },
+    { title: '优图实验室-原生多模态Infra技术研究', unit: '优图实验室', dir: '多模态', cities: '上海', url: 'https://join.qq.com/post_detail.html?postid=1280227308716025861' },
+    { title: '优图实验室-视频全模态理解基础技术研究', unit: '优图实验室', dir: '多模态', cities: '上海', url: 'https://join.qq.com/post_detail.html?postid=1280227296812591104' },
+    { title: '优图实验室-高精3D生成技术研究', unit: '优图实验室', dir: '3D生成', cities: '上海', url: 'https://join.qq.com/post_detail.html?postid=1274481034578500765' },
+    { title: 'WXG-WeLM 多模态大模型基座建设', unit: '微信·WeLM', dir: '多模态大模型', cities: '深圳总部 北京 上海', url: 'https://join.qq.com/post_detail.html?postid=1231829074687944863' },
+    { title: '微信-大模型Agent系统设计与研究', unit: '微信', dir: 'Agent', cities: '深圳总部 北京 上海', url: 'https://join.qq.com/post_detail.html?postid=1231829074687944861' },
+    { title: '混元-大模型infra稳定性研究', unit: '混元大模型', dir: '大模型', cities: '北京 上海', url: 'https://join.qq.com/post_detail.html?postid=1231829074687944772' },
+    { title: 'AI Agent研究', unit: '腾讯AI', dir: 'Agent', cities: '上海', url: 'https://join.qq.com/post_detail.html?postid=1231829074692139149' },
+    { title: '医疗大模型的相关研究', unit: '腾讯AI', dir: '大模型', cities: '上海', url: 'https://join.qq.com/post_detail.html?postid=1271996654375354368' },
+    { title: 'AI安全技术工程师（风控算法）', unit: '安全', dir: '算法', cities: '深圳总部 北京 上海 广州', url: 'https://join.qq.com/post_detail.html?postid=1154876866054932480' },
+    { title: '算法-推荐算法方向', unit: '腾讯', dir: '推荐算法', cities: '深圳总部 北京 上海 广州', url: 'https://join.qq.com/post_detail.html?postid=1211674462290972672' },
+    { title: '算法-推荐算法方向', unit: '腾讯', dir: '推荐算法', cities: '深圳总部 北京 上海 广州', url: 'https://join.qq.com/post_detail.html?postid=1150119851554307072' },
+    { title: '算法-数据科学方向', unit: '腾讯', dir: '数据科学', cities: '深圳总部 北京 上海 广州 成都', url: 'https://join.qq.com/post_detail.html?postid=1211674464354570240' }
+  ]
+};
+
+// ============ 小红书求职关键词（静态站无法实时抓取，提供检索直达）============
+// 小红书是实习/校招经验、内推、面经的高频内容源；点关键词直达站内搜索。
+export const XHS_KEYWORDS = [
+  { kw: '上海 算法实习', note: '上海大厂算法日常实习经验 / 内推' },
+  { kw: '腾讯优图 实习', note: '优图实验室 CV / 多模态实习' },
+  { kw: '字节 算法实习 内推', note: '字节 AI Lab 内推与面经' },
+  { kw: '小红书 算法实习', note: '小红书社区 / 推荐 / 多模态实习' },
+  { kw: '计算机视觉 实习', note: 'CV 方向实习岗位与作品集' },
+  { kw: '多模态 大模型 实习', note: '多模态 / 大模型研究实习' },
+  { kw: '大厂 日常实习 转正', note: '日常实习转正经验' },
+  { kw: '秋招 算法 面经', note: '算法岗秋招面经合集' },
+  { kw: 'AI 算法岗 薪资 爆料', note: '薪资与 HC 爆料（仅供参考）' }
+];
+
+// 小红书站内搜索直达
+export const XHS_SEARCH = k => 'https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(k);
+
+// ============ 微信公众号精选（静态站无法实时抓取，提供搜一搜直达）============
+export const WECHAT_OFFICIAL = [
+  { name: '机器之心', note: 'AI 前沿论文与产业动态' },
+  { name: '量子位', note: 'AI 技术与应用快讯' },
+  { name: '计算机视觉life', note: 'CV 方向干货与招聘' },
+  { name: '新智元', note: '通用人工智能综合资讯' },
+  { name: 'AI科技评论', note: '学术界与工业界观点' },
+  { name: '自动驾驶之心', note: '自动驾驶 / 机器人视觉' },
+  { name: '腾讯技术工程', note: '腾讯一线技术实践' }
+];
+// 微信搜一搜直达（在微信内打开效果更好）
+export const WECHAT_SEARCH = k => 'https://weixin.qq.com/s?query=' + encodeURIComponent(k);
+

@@ -2,7 +2,7 @@
 import { store, S } from '../store.js';
 import { $, $$, esc, ymd, uid } from '../utils.js';
 import { formModal, toast, confirmDlg, emptyBox, modal } from '../ui.js';
-import { JOB_PLATFORMS, DAILY_INTERNS, CAMPUS_TARGETS } from '../data/jobs.js';
+import { JOB_PLATFORMS, DAILY_INTERNS, CAMPUS_TARGETS, TENCENT_SNAPSHOT, XHS_KEYWORDS, XHS_SEARCH } from '../data/jobs.js';
 
 let host = null, tab = 'daily', city = '上海', kind = 'all', q = '';
 const STATUS = ['关注中', '已投递', '面试中', '已过', '已拿offer'];
@@ -37,6 +37,40 @@ function platformsCard() {
   </div></div>`;
 }
 
+// 腾讯实时岗位快照（来自 tencent-campus-recruit 技能抓取）
+function tencentCard() {
+  const t = TENCENT_SNAPSHOT;
+  return `<div class="card" style="margin-bottom:14px;border-color:#0d47a1;background:linear-gradient(135deg,#eaf1ff,var(--card))">
+    <div class="card-head"><h3>🐧 腾讯实时岗位快照</h3><span class="chip gray">${t.items.length} 个 · 快照 ${t.fetchedAt}</span></div>
+    <div class="card-body" style="font-size:13px">
+      <div class="small muted" style="margin-bottom:8px">${esc(t.note)}</div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px">
+        ${t.items.map(it => `<div class="list-item" style="padding:8px 10px">
+          <div style="flex:1;min-width:0">
+            <div class="t" style="font-size:13px">${esc(it.title)}</div>
+            <div class="s" style="font-size:12px">${esc(it.unit)} · ${esc(it.dir)} · ${esc(it.cities)}</div>
+          </div>
+          <a class="btn sm solid" href="${it.url}" target="_blank" rel="noopener">官网 ↗</a>
+        </div>`).join('')}
+      </div>
+      <p class="small muted" style="margin-top:8px">数据为快照，真实岗位以 <a href="https://join.qq.com" target="_blank" rel="noopener">join.qq.com</a> 为准；后续可接后端代理实时拉取。</p>
+    </div>
+  </div>`;
+}
+
+// 小红书求职关键词检索直达
+function xhsCard() {
+  return `<div class="card" style="margin-bottom:14px">
+    <div class="card-head"><h3>📕 小红书求职关键词</h3><span class="chip gray">检索直达</span></div>
+    <div class="card-body">
+      <div class="small muted" style="margin-bottom:8px">小红书是实习/校招经验、内推、面经高频内容源（静态站无法实时抓取，点关键词直达站内搜索）：</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        ${XHS_KEYWORDS.map(x => `<a class="chip" title="${esc(x.note)}" style="text-decoration:none;cursor:pointer" href="${XHS_SEARCH(x.kw)}" target="_blank" rel="noopener">🔍 ${esc(x.kw)}</a>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
 function companyCard(c) {
   return `<div class="card" style="margin-bottom:10px${c.hot ? ';border-color:#e0a800;box-shadow:0 0 0 2px rgba(224,168,0,.15)' : ''}">
     <div class="card-head" style="padding:11px 13px"><h3 style="font-size:14px">${c.hot ? '★ ' : ''}${esc(c.company)}</h3>
@@ -63,6 +97,8 @@ function renderDaily(body) {
     </div>
   </div>
   ${platformsCard()}
+  ${tencentCard()}
+  ${xhsCard()}
   <div class="row" style="margin-bottom:12px">
     <div class="seg" id="citySeg">
       ${[['上海', '上海'], ['北京', '北京'], ['all', '全部']].map(([v, t]) => `<button data-c="${v}" class="${city === v ? 'active' : ''}">${t}</button>`).join('')}
@@ -86,6 +122,8 @@ function renderCampus(body) {
     </div>
   </div>
   ${platformsCard()}
+  ${tencentCard()}
+  ${xhsCard()}
   <div class="row" style="margin-bottom:12px">
     <div class="seg" id="citySeg">
       ${[['all', '全部'], ['北京', '北京'], ['天津', '天津']].map(([v, t]) => `<button data-c="${v}" class="${city === v ? 'active' : ''}">${t}</button>`).join('')}

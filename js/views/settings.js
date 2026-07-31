@@ -67,6 +67,8 @@ function rerender() {
         <input type="text" id="syTk" value="${esc(sy.token)}" placeholder="取决于后端类型，见下方说明"></label>
       <p class="small muted" id="syHint" style="margin-bottom:10px"></p>
       <label class="fld" style="flex-direction:row;align-items:center;gap:8px;margin-bottom:10px"><input type="checkbox" id="syAuto" ${sy.auto ? 'checked' : ''}><span>数据变更后自动推送（防抖 2.5 秒）</span></label>
+      <label class="fld" style="margin-bottom:10px"><span>轻量后端代理 URL（可选）</span>
+        <input type="url" id="proxyUrl" value="${esc(st.settings.backendProxy)}" placeholder="留空=前端直连；填 Cloudflare Workers 地址可解锁论文/资讯实时抓取+逐段翻译"></label>
       <div class="row">
         <button class="btn solid" id="saveSync">保存配置</button>
         <button class="btn" id="testSync">🔍 测试连接</button>
@@ -128,7 +130,7 @@ function rerender() {
   };
   $('#reqPerm').onclick = async () => { await requestPermission(); rerender(); };
   $('#testNotif').onclick = () => { pushNotif('🔔 测试通知', '如果你看到系统弹窗，说明桌面提醒已生效', 'test', true); toast('已发送'); };
-  const saveSyncCfg = () => store.update(s => Object.assign(s.settings.sync, { enabled: $('#syEn').checked, type: $('#syType').value, endpoint: $('#syUrl').value.trim(), token: $('#syTk').value.trim(), auto: $('#syAuto').checked }));
+  const saveSyncCfg = () => store.update(s => { Object.assign(s.settings.sync, { enabled: $('#syEn').checked, type: $('#syType').value, endpoint: $('#syUrl').value.trim(), token: $('#syTk').value.trim(), auto: $('#syAuto').checked }); s.settings.backendProxy = $('#proxyUrl').value.trim(); });
   $('#saveSync').onclick = () => { saveSyncCfg(); toast('同步配置已保存', 'ok'); rerender(); };
   const hints = {
     generic: '端点填任意支持 GET 拉取 / PUT 推送 JSON 的地址（如 Cloudflare Workers KV、Supabase Storage、jsonbin）。令牌作为 Bearer 发送，可留空。',

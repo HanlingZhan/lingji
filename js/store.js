@@ -60,6 +60,7 @@ function defaults() {
     settings: {
       theme: 'light',
       sync: { enabled: false, type: 'generic', endpoint: '', token: '', auto: true },
+      backendProxy: '',
       notify: { desktop: true, inApp: true, sound: false, dailyPaperHour: 8, wordHour: 9 }
     },
     notifications: [],
@@ -311,3 +312,5 @@ export function mergeStates(local, remote) {
 
 export const store = new Store();
 export const S = () => store.state;
+// 轻量后端代理基地址（Cloudflare Workers 等）；为空则用前端直连/快照
+export function proxyBase() { return (S().settings.backendProxy || '').replace(/\/$/, ''); }

@@ -1,5 +1,5 @@
 // ============ 计算机 AI 方向定向论文抓取与文献管理 ============
-import { store, S } from '../store.js';
+import { store, S, proxyBase } from '../store.js';
 import { $, $$, esc, ymd, uid, download, fmtAgo, groupBy } from '../utils.js';
 import { formModal, toast, confirmDlg, emptyBox, modal } from '../ui.js';
 import { VENUES } from '../data/venues.js';
@@ -48,6 +48,12 @@ export async function fetchArxiv(maxResults = 60) {
   const kwQuery = kws.slice(0, 12).map(k => `all:"${k}"`).join('+OR+');
   const catQuery = (r.categories || []).map(c => `cat:${c}`).join('+OR+');
   const q = catQuery ? `(${kwQuery})+AND+(${catQuery})` : `(${kwQuery})`;
+  const proxy = proxyBase();
+  if (proxy) {
+    const res = await fetch(`${proxy}/arxiv?q=${encodeURIComponent(q)}&max=${maxResults}`);
+    if (!res.ok) throw new Error('代理 arXiv HTTP ' + res.status);
+    return await res.json();
+  }
   const url = `https://export.arxiv.org/api/query?search_query=${q}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('arXiv HTTP ' + res.status);
@@ -73,6 +79,14 @@ export async function fetchArxiv(maxResults = 60) {
 
 export async function fetchOpenReview(limit = 25) {
   const kws = activeKeywords().slice(0, 3).map(x => x.k);
+  const proxy = proxyBase();
+  if (proxy) {
+    const out = [];
+    for (const k of kws) {
+      try { const res = await fetch(`${proxy}/openreview?term=${encodeURIComponent(k)}`); if (!res.ok) continue; out.push(...(await res.json())); } catch { }
+    }
+    return out;
+  }
   const out = [];
   for (const k of kws) {
     try {
@@ -96,6 +110,14 @@ export async function fetchOpenReview(limit = 25) {
 
 export async function fetchPwC(limit = 20) {
   const kws = activeKeywords().slice(0, 3).map(x => x.k);
+  const proxy = proxyBase();
+  if (proxy) {
+    const out = [];
+    for (const k of kws) {
+      try { const res = await fetch(`${proxy}/pwc?q=${encodeURIComponent(k)}`); if (!res.ok) continue; out.push(...(await res.json())); } catch { }
+    }
+    return out;
+  }
   const out = [];
   for (const k of kws) {
     try {
@@ -449,6 +471,10 @@ export async function translate(text) {
   if (!text) return '';
   const t = text.slice(0, 1800);
   if (trCache.has(t)) return trCache.get(t);
+  const proxy = proxyBase();
+  if (proxy) {
+    try { const r = await fetch(`${proxy}/tr?text=${encodeURIComponent(t)}&tl=zh-CN`); if (r.ok) { const out = await r.text(); trCache.set(t, out); return out; } } catch { }
+  }
   try {
     const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(t)}`);
     if (!r.ok) throw 0;
