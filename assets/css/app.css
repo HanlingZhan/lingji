@@ -241,6 +241,8 @@ table.tt td:first-child,table.tt th:first-child{width:66px;text-align:center;bac
 .tt-course{background:var(--blue-100);border-left:3px solid var(--blue-500);border-radius:7px;padding:7px 9px;font-size:12.5px;margin-bottom:5px;color:var(--blue-800);cursor:pointer;line-height:1.35}
 .tt-course.conflict{background:var(--danger-bg);border-color:var(--danger);color:var(--danger)}
 .tt-course b{display:block;font-size:13px;margin-bottom:3px;font-weight:600}
+.tt-daytabs{display:none}
+#wkRange{width:180px}
 
 /* ---------- 论文 ---------- */
 .paper{border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px;background:var(--card);margin-bottom:11px;transition:.15s}
@@ -328,6 +330,26 @@ table.tt td:first-child,table.tt th:first-child{width:66px;text-align:center;bac
   .tabbar button .ico{font-size:18px}
   .tabbar button.active{color:var(--blue-600);font-weight:600}
   .stat b{font-size:19px}
+
+  /* 课表移动端：单日纵向时间线（替代 7 列挤在一起的横向大表） */
+  .tt-wrap{overflow:visible}
+  table.tt{display:none}
+  .tt-daytabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px;-webkit-overflow-scrolling:touch}
+  .tt-daytabs button{flex:0 0 auto;min-width:50px;border:1px solid var(--line);background:var(--card);border-radius:11px;padding:7px 4px;text-align:center;cursor:pointer;color:var(--ink-2);transition:.15s}
+  .tt-daytabs button .d{font-weight:700;font-size:13px}
+  .tt-daytabs button .dt{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap}
+  .tt-daytabs button.on{background:var(--blue-600);color:#fff;border-color:var(--blue-600)}
+  .tt-daytabs button.on .dt{color:#d7e6fb}
+  .tt-day{display:flex;flex-direction:column;gap:10px}
+  .tt-course2{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue-500);border-radius:12px;padding:11px 13px;box-shadow:0 1px 3px rgba(16,42,80,.05);cursor:pointer}
+  .tt-course2 b{font-size:14.5px;display:block}
+  .tt-course2 .meta{font-size:12.5px;color:var(--muted);margin-top:5px;line-height:1.5}
+  .tt-course2.conflict{border-color:var(--danger);background:var(--danger-bg)}
+  /* 周次滑块在手机上撑满一行 */
+  #wkRange{width:auto;flex:1;min-width:120px}
+  /* 顶部「快速新建」在手机上只保留加号，省空间 */
+  #quickAddBtn .qa-txt{display:none}
+  #quickAddBtn{padding:7px 13px;font-size:17px;line-height:1}
 }
 /* ---------- 首页背景图片 ---------- */
 body.has-bg{background-size:cover;background-position:center;background-repeat:no-repeat;background-attachment:fixed}

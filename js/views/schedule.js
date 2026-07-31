@@ -44,11 +44,24 @@ export function conflicts(courses) {
 }
 
 let viewWeek = 0, host = null;
-export function render(el) { host = el; viewWeek = viewWeek || Math.max(1, currentWeek(S().semester) || 1); rerender(); }
+let mobileDay = ((new Date().getDay() + 6) % 7) + 1; // 1=周一…7=周日
+let _resizeBound = false, _lastMobile = null;
+export function render(el) {
+  host = el; viewWeek = viewWeek || Math.max(1, currentWeek(S().semester) || 1);
+  if (!_resizeBound) {
+    _resizeBound = true;
+    window.addEventListener('resize', () => {
+      const m = window.matchMedia('(max-width:760px)').matches;
+      if (m !== _lastMobile) { _lastMobile = m; rerender(); }
+    });
+  }
+  rerender();
+}
 
 function rerender() {
   if (!host) return;
   const st = S(); const sem = st.semester;
+  const isMobile = window.matchMedia('(max-width:760px)').matches; _lastMobile = isMobile;
   const cw = currentWeek(sem);
   const [ws, we] = sem.startDate ? weekRange(sem, viewWeek) : [null, null];
   const bad = conflicts(st.courses);
@@ -72,12 +85,12 @@ function rerender() {
     <button class="btn" id="pw">‹ 上一周</button>
     <strong>第 ${viewWeek} 周${ws ? ` · ${ymd(ws)} ~ ${ymd(we)}` : ''}</strong>
     <button class="btn" id="nw">下一周 ›</button>
-    <input type="range" min="1" max="${sem.weeks}" value="${viewWeek}" id="wkRange" style="width:180px">
+    <input type="range" min="1" max="${sem.weeks}" value="${viewWeek}" id="wkRange">
     <button class="btn" id="cwBtn">回到本周</button>
     ${bad.size ? `<span class="chip danger">检测到 ${bad.size} 门课程时间冲突</span>` : '<span class="chip ok">无时间冲突</span>'}
   </div>
 
-  <div class="tt-wrap">${tableHTML(viewWeek, bad)}</div>
+  ${isMobile ? dayViewHTML(viewWeek, bad) : `<div class="tt-wrap">${tableHTML(viewWeek, bad)}</div>`}
 
   <div class="card" style="margin-top:16px">
     <div class="card-head"><h3>📋 全部课程（${st.courses.length}）</h3></div>
@@ -103,6 +116,7 @@ function rerender() {
   $('#nw').onclick = () => { viewWeek = clamp(viewWeek + 1, 1, sem.weeks); rerender(); };
   $('#cwBtn').onclick = () => { viewWeek = Math.max(1, cw || 1); rerender(); };
   $('#wkRange').oninput = e => { viewWeek = Number(e.target.value); rerender(); };
+  host.querySelectorAll('.tt-daytabs button').forEach(b => b.onclick = () => { mobileDay = Number(b.dataset.day); rerender(); });
   host.onclick = e => {
     const ed = e.target.closest('[data-edit]'); if (ed) return openCourseForm(S().courses.find(c => c.id === ed.dataset.edit));
     const dl = e.target.closest('[data-del]'); if (dl) return confirmDlg('确定删除该课程？', () => { store.remove('courses', dl.dataset.del); rerender(); });
@@ -131,6 +145,36 @@ function tableHTML(week, bad) {
     html += '</tr>';
   }
   return html + '</table>';
+}
+
+// 移动端课表：单日纵向时间线（避免 7 列横向挤成一团）
+function dayViewHTML(week, bad) {
+  const st = S();
+  const days = WEEK_CN.slice(1).concat(WEEK_CN[0]); // 周一…周日
+  const today = ((new Date().getDay() + 6) % 7) + 1;
+  const tabs = days.map((d, i) => {
+    const day = i + 1;
+    const dt = st.semester.startDate ? addDays(weekRange(st.semester, week)[0], i) : null;
+    const cnt = st.courses.filter(c => c.day === day && courseOccursOn(c, dt || new Date(), week)).length;
+    return `<button class="${day === mobileDay ? 'on' : ''}" data-day="${day}">
+      <div class="d">${d}${day === today ? '·今' : ''}</div>
+      <div class="dt">${dt ? `${dt.getMonth() + 1}/${dt.getDate()}` : ''}${cnt ? ` ·${cnt}` : ''}</div></button>`;
+  }).join('');
+
+  const list = st.courses.filter(c => c.day === mobileDay && week >= c.weekFrom && week <= c.weekTo
+    && !(c.parity === 'odd' && week % 2 === 0) && !(c.parity === 'even' && week % 2 === 1))
+    .sort((a, b) => a.startSec - b.startSec);
+
+  const body = list.length ? list.map(c => `
+    <div class="tt-course2 ${bad.has(c.id) ? 'conflict' : ''}" data-course="${c.id}" style="border-left-color:${c.color || '#1565c0'}">
+      <b>${esc(c.name)}</b>
+      <div class="meta">第 ${c.startSec}-${c.endSec} 节 · ${SECTION_TIME[c.startSec - 1]?.[0]}-${SECTION_TIME[c.endSec - 1]?.[1]}${bad.has(c.id) ? ' · <span style="color:var(--danger);font-weight:600">时间冲突</span>' : ''}</div>
+      <div class="meta">📍 ${esc(c.room || '—')} ｜ 👤 ${esc(c.teacher || '—')}</div>
+      ${c.note ? `<div class="meta">📝 ${esc(c.note)}</div>` : ''}
+    </div>`).join('')
+    : `<div class="empty"><span class="big">📭</span>本周${WEEK_CN[mobileDay % 7]}没有排课</div>`;
+
+  return `<div class="tt-daytabs">${tabs}</div><div class="tt-day">${body}</div>`;
 }
 
 function openSemesterForm() {
