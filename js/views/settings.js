@@ -178,7 +178,7 @@ function rerender() {
       body: `<p class="small muted">把另一台设备「📋 复制配置」得到的配置码粘贴到这里，会自动填入并立即同步：</p><textarea id="cfgIn" rows="3" style="width:100%;font-family:monospace" placeholder="粘贴配置码"></textarea>`,
       foot: '<button class="btn" data-close>取消</button><button class="btn solid" id="doPaste">填入并同步</button>',
       onOpen: (b, close) => {
-        b.querySelector('#doPaste').onclick = async () => {
+        document.getElementById('doPaste').onclick = async () => {
           try {
             const cfg = decodeCfg(b.querySelector('#cfgIn').value);
             store.update(s => { Object.assign(s.settings.sync, { enabled: true, type: cfg.t, endpoint: cfg.e, token: cfg.k, auto: true }); });
@@ -214,7 +214,7 @@ function rerender() {
       <label class="fld" style="flex-direction:row;align-items:center;gap:8px"><input type="radio" name="impMode" value="replace"><span>完全覆盖现有数据</span></label>`,
       foot: '<button class="btn" data-close>取消</button><button class="btn solid" id="doImp">导入</button>',
       onOpen: (b, close) => {
-        b.querySelector('#doImp').onclick = async () => {
+        document.getElementById('doImp').onclick = async () => {
           const f = b.querySelector('#impFile').files[0]; if (!f) return toast('请选择文件', 'err');
           try {
             store.import(await f.text(), b.querySelector('[name=impMode]:checked').value);
