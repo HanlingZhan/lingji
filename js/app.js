@@ -83,8 +83,8 @@ function openMore() {
   });
 }
 
-function openDrawer() { $('#sidebar').classList.add('open'); $('#drawerMask').classList.add('on'); }
-function closeDrawer() { $('#sidebar').classList.remove('open'); $('#drawerMask').classList.remove('on'); }
+function openDrawer() { document.body.classList.add('drawer-open'); $('#sidebar').classList.add('open'); $('#drawerMask').classList.add('on'); }
+function closeDrawer() { document.body.classList.remove('drawer-open'); $('#sidebar').classList.remove('open'); $('#drawerMask').classList.remove('on'); }
 
 // 手机端切回前台 / 定时自动拉取，保证多端实时同步
 async function autoPull() {
@@ -179,7 +179,19 @@ async function boot() {
   setInterval(autoPull, 60000);
   // 注册 Service Worker（PWA：可「添加到主屏幕」、离线可用）。仅 http(s)/localhost。
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    try { await navigator.serviceWorker.register('./sw.js'); } catch (e) { console.warn('SW 注册失败', e); }
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js');
+      // 发现新版本（代码更新后）自动提示并刷新，确保用户拿到最新修复
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing; if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            toast('已更新到新版本，正在刷新…', 'ok');
+            setTimeout(() => location.reload(), 900);
+          }
+        });
+      });
+    } catch (e) { console.warn('SW 注册失败', e); }
   }
 }
 boot();

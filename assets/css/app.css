@@ -304,10 +304,14 @@ table.tt td:first-child,table.tt th:first-child{width:66px;text-align:center;bac
 /* ---------- 手机 ---------- */
 @media(max-width:760px){
   .only-mobile{display:grid}
-  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .25s;width:260px;flex-basis:260px}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .25s;width:260px;flex-basis:260px;z-index:120}
   .sidebar.open{transform:none;box-shadow:var(--shadow-lg)}
-  .drawer-mask{display:block;position:fixed;inset:0;background:rgba(8,24,48,.4);z-index:55;opacity:0;pointer-events:none;transition:.25s}
+  .drawer-mask{display:block;position:fixed;inset:0;background:rgba(8,24,48,.4);z-index:110;opacity:0;pointer-events:none;transition:.25s}
   .drawer-mask.on{opacity:1;pointer-events:auto}
+  /* 抽屉打开时隐藏底部导航与悬浮按钮，避免遮挡抽屉底部（同步状态条等） */
+  body.drawer-open .tabbar{display:none}
+  body.drawer-open .fab,body.drawer-open .fab-sheet{display:none}
+  .sidebar-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
   .view{padding:14px 13px 84px}
   .topbar{padding:9px 12px;gap:9px}
   .topbar-title h1{font-size:16px} .topbar-title p{display:none}
