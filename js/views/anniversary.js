@@ -232,7 +232,7 @@ function drawGift() {
     <div class="card"><div class="card-head"><h3>👤 人物档案</h3></div><div class="card-body">
       ${st.people.length ? st.people.map(p => `
         <div class="list-item"><div style="flex:1">
-          <div class="t">${esc(p.name)} <span class="chip gray">${esc(p.relation || '')}</span></div>
+          <div class="t">${esc(p.name)} <span class="chip gray">${esc(p.relation || '')}</span>${p.occupation ? ` <span class="chip gray">${esc(p.occupation)}</span>` : ''}${p.age ? ` <span class="chip gray">${p.age} 岁</span>` : ''}</div>
           <div class="s">${(p.interests || []).slice(0, 6).map(t => `<span class="chip">${esc(t)}</span>`).join(' ')}</div>
           <div class="s">预算 ¥${p.budgetLo}-${p.budgetHi}${p.sizes ? ' · 尺码 ' + esc(p.sizes) : ''}</div>
           ${p.taboo?.length ? `<div class="s" style="color:var(--danger)">禁忌：${p.taboo.map(esc).join('、')}</div>` : ''}
@@ -304,6 +304,13 @@ function runRecommend(anni = null, person = null) {
     }
   });
 }
+// 电商直达搜索链接（根据礼物名生成淘宝 / 拼多多搜索 URL）
+function shopUrl(plat, q) {
+  const enc = encodeURIComponent(q);
+  if (plat === 'tb') return `https://s.taobao.com/search?q=${enc}`;
+  if (plat === 'pdd') return `https://mobile.yangkeduo.com/search_result.html?search_key=${enc}`;
+  return '#';
+}
 function renderGiftList(list, person, occ) {
   const el = $('#giftList'); if (!el) return;
   const byCat = {};
@@ -317,7 +324,11 @@ function renderGiftList(list, person, occ) {
         <div class="price">¥${g.lo} - ${g.hi}</div>
         <div class="small muted" style="margin:4px 0">${esc(g.why)}</div>
         <div class="row">${g.hitTags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}<span class="score ${g.score >= 80 ? 'hi' : ''}">匹配 ${Math.min(99, g.score)}</span></div>
-        <button class="btn sm" style="margin-top:8px" data-save="${encodeURIComponent(JSON.stringify({ name: g.n, cat: g.cat, lo: g.lo, hi: g.hi, forName: person.name, occ }))}">⭐ 收藏</button>
+        <div class="row" style="margin-top:8px;gap:6px">
+          <a class="btn sm" target="_blank" rel="noopener" href="${shopUrl('tb', g.n)}">🛒 淘宝搜</a>
+          <a class="btn sm" target="_blank" rel="noopener" href="${shopUrl('pdd', g.n)}">🛒 拼多多搜</a>
+          <button class="btn sm" data-save="${encodeURIComponent(JSON.stringify({ name: g.n, cat: g.cat, lo: g.lo, hi: g.hi, forName: person.name, occ }))}">⭐ 收藏</button>
+        </div>
       </div>`).join('')}
     </div></div>`).join('');
 }
@@ -328,8 +339,10 @@ function personForm(rec = null) {
     fields: [
       { key: 'name', label: '称呼', required: true, value: rec?.name || '' },
       { key: 'relation', label: '关系', type: 'select', value: rec?.relation || '对象', options: ['对象', '本人', '家人', '朋友', '导师'].map(v => ({ v, t: v })) },
-      { key: 'interests', label: '兴趣偏好标签', type: 'tags', span: 'full', value: rec?.interests || [], placeholder: '逗号分隔，如：JK, 二次元, 摄影, 咖啡', hint: '可选：' + INTEREST_TAGS.join('、') },
-      { key: 'style', label: '风格取向', type: 'tags', span: 'full', value: rec?.style || [], placeholder: '如：甜美, 简约, 复古, 极简（可多选，越细定位越准）', hint: '可选风格关键词（约 ' + (INTEREST_TAGS.length) + ' 个兴趣词的 2 倍）：' + STYLE_TAGS.join('、') },
+      { key: 'occupation', label: '职业（选填，可留空）', value: rec?.occupation || '', placeholder: '如：博士在读 / 设计师 / 教师' },
+      { key: 'age', label: '年龄（选填，可留空）', type: 'number', value: rec?.age ?? '', min: 1, max: 120, placeholder: '如：24' },
+      { key: 'interests', label: '兴趣偏好标签', type: 'tagpick', span: 'full', value: rec?.interests || [], suggest: INTEREST_TAGS, hint: '点击下方已有标签可选取/取消，也可自定义添加（越准推荐越对）' },
+      { key: 'style', label: '风格取向', type: 'tagpick', span: 'full', value: rec?.style || [], suggest: STYLE_TAGS, hint: '点击下方风格词选取，也可自定义（越细定位越准）' },
       { key: 'taboo', label: '禁忌品类', type: 'tags', span: 'full', value: rec?.taboo || [], placeholder: '如：香水, 美妆（命中将直接排除）' },
       { key: 'budgetLo', label: '常用预算下限 ¥', type: 'number', value: rec?.budgetLo ?? 100 },
       { key: 'budgetHi', label: '常用预算上限 ¥', type: 'number', value: rec?.budgetHi ?? 800 },

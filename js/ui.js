@@ -48,7 +48,7 @@ export function formModal({ title, fields, submitText = '保存', wide = false, 
           if (!el) continue;
           let v = f.type === 'checkbox' ? el.checked : el.value;
           if (f.type === 'number') v = v === '' ? null : Number(v);
-          if (f.type === 'tags') v = el.value.split(/[,，;；\n]/).map(s => s.trim()).filter(Boolean);
+          if (f.type === 'tags' || f.type === 'tagpick') v = (el.value || '').split(/[,，;；\n]/).map(s => s.trim()).filter(Boolean);
           if (f.required && (v === '' || v === null)) { el.focus(); toast('请填写「' + f.label + '」', 'err'); return; }
           data[f.key] = v;
         }
@@ -56,6 +56,30 @@ export function formModal({ title, fields, submitText = '保存', wide = false, 
         if (r !== false) close();
       };
       ok.onclick = submit;
+      // 标签点选组件（兴趣 / 风格 / 自定义添加）
+      body.addEventListener('click', e => {
+        const pk = e.target.closest('.tagpick'); if (!pk) return;
+        const hidden = pk.querySelector('input[type=hidden]');
+        const selBox = pk.querySelector('[data-sel]');
+        const sugBox = pk.querySelector('[data-sug]');
+        const input = pk.querySelector('.tp-input');
+        const x = e.target.closest('.tp-x');
+        if (x) { tpSet(hidden, selBox, sugBox, tpGet(hidden).filter(s => s !== x.dataset.t)); return; }
+        const chip = e.target.closest('.tp-chip');
+        if (chip) { const t = chip.dataset.t; const cur = tpGet(hidden); tpSet(hidden, selBox, sugBox, cur.includes(t) ? cur.filter(s => s !== t) : [...cur, t]); return; }
+        if (e.target.closest('.tp-addbtn')) { const val = input.value.trim(); if (val) { const cur = tpGet(hidden); if (!cur.includes(val)) tpSet(hidden, selBox, sugBox, [...cur, val]); input.value = ''; } return; }
+      });
+      body.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        const input = e.target.closest && e.target.closest('.tp-input'); if (!input) return;
+        e.preventDefault(); e.stopImmediatePropagation();
+        const pk = input.closest('.tagpick');
+        const hidden = pk.querySelector('input[type=hidden]');
+        const selBox = pk.querySelector('[data-sel]');
+        const sugBox = pk.querySelector('[data-sug]');
+        const val = input.value.trim();
+        if (val) { const cur = tpGet(hidden); if (!cur.includes(val)) tpSet(hidden, selBox, sugBox, [...cur, val]); input.value = ''; }
+      }, true);
       body.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.ctrlKey !== undefined && e.target.tagName === 'INPUT') submit(); });
       const first = body.querySelector('input,select,textarea'); first && first.focus();
     }
@@ -75,10 +99,29 @@ export function fieldHTML(f) {
       return `<label class="fld${span}" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="${f.key}"${v ? ' checked' : ''}><span>${esc(f.label)}</span></label>`;
     case 'tags':
       inner = `<input type="text" name="${f.key}" value="${esc(Array.isArray(v) ? v.join(', ') : v)}" placeholder="${esc(f.placeholder || '逗号分隔')}">`; break;
+    case 'tagpick': {
+      const tv = Array.isArray(v) ? v : String(v).split(',').map(s => s.trim()).filter(Boolean);
+      const sug = (f.suggest || []).map(t => `<span class="tp-chip sug${tv.includes(t) ? ' active' : ''}" data-t="${esc(t)}">${esc(t)}</span>`).join('');
+      const sel = tv.length ? tv.map(t => `<span class="tp-chip sel" data-t="${esc(t)}">${esc(t)}<button type="button" class="tp-x" data-t="${esc(t)}">×</button></span>`).join('') : '<span class="small muted">尚未选择</span>';
+      inner = `<div class="tagpick" data-key="${f.key}">
+        <div class="tp-selected" data-sel>${sel}</div>
+        <div class="tp-add"><input type="text" class="tp-input" placeholder="自定义标签，回车或点添加"><button type="button" class="tp-addbtn">+ 添加</button></div>
+        ${f.suggest && f.suggest.length ? `<div class="tp-suggest" data-sug>${sug}</div>` : ''}
+        <input type="hidden" name="${f.key}" value="${esc(tv.join(','))}">
+      </div>`; break;
+    }
     default:
       inner = `<input type="${f.type || 'text'}" name="${f.key}" value="${esc(v)}" placeholder="${esc(f.placeholder || '')}"${f.min !== undefined ? ` min="${f.min}"` : ''}${f.max !== undefined ? ` max="${f.max}"` : ''}${f.step ? ` step="${f.step}"` : ''}>`;
   }
   return `<label class="fld${span}"><span>${esc(f.label)}${f.required ? ' <em style="color:var(--danger);font-style:normal">*</em>' : ''}</span>${inner}${f.hint ? `<span class="small muted">${f.hint}</span>` : ''}</label>`;
+}
+
+// 标签点选组件：读取 / 写入隐藏域，并同步已选与建议高亮
+function tpGet(hidden) { return (hidden.value || '').split(',').map(s => s.trim()).filter(Boolean); }
+function tpSet(hidden, selBox, sugBox, arr) {
+  hidden.value = arr.join(',');
+  selBox.innerHTML = arr.length ? arr.map(t => `<span class="tp-chip sel" data-t="${esc(t)}">${esc(t)}<button type="button" class="tp-x" data-t="${esc(t)}">×</button></span>`).join('') : '<span class="small muted">尚未选择</span>';
+  sugBox.querySelectorAll('.tp-chip').forEach(c => c.classList.toggle('active', arr.includes(c.dataset.t)));
 }
 
 // 简易拖拽排序：容器内 [draggable] 元素
