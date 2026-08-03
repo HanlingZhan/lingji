@@ -134,29 +134,44 @@ class Store extends EventTarget {
   flush() { if (navigator.onLine && this.state.settings.sync.enabled) this.push(); }
 
   // ---- 云同步（多后端：generic / github / webdav，记录级 last-write-wins 合并） ----
-  async pull() {
+  _countRecords() {
+    const st = this.state;
+    return (st.reminders.length + st.anniversaries.length + st.board.tasks.length + st.courses.length +
+      st.paperLib.length + st.people.length + st.gifts.length + st.jobTracking.length +
+      (st.fitness?.logs?.length || 0) + (st.cycle?.records?.length || 0));
+  }
+  // 从云端拉取并合并到本机；返回本次新增的记录数（用于提示）
+  async _doPull() {
     const s = this.state.settings.sync;
     if (!s.enabled || !s.endpoint) throw new Error('未配置同步端点');
+    const before = this._countRecords();
     const remote = await fetchRemote(s, this);
     this.state = mergeStates(this.state, remote);
+    const after = this._countRecords();
     localStorage.setItem(KEY, JSON.stringify(this.state));
-    this.emit('sync'); return { ok: true };
+    this.emit('sync');
+    return { ok: true, added: Math.max(0, after - before) };
+  }
+  async pull() {
+    try { const r = await this._doPull(); return r; }
+    catch (e) { return { ok: false, msg: e.message }; }
   }
   async push() {
     const s = this.state.settings.sync;
-    if (!s.enabled) return { ok: false, msg: '请先在上方勾选「启用云端同步」并填写端点/令牌后点保存' };
+    if (!s.enabled) return { ok: false, msg: '请先在上方勾选「启用云端同步」并保存配置' };
     if (!s.endpoint) return { ok: false, msg: '请填写同步端点' };
     if (!navigator.onLine) return { ok: false, msg: '离线，已加入待同步队列' };
     if (this._pushing) return this._pushing;              // 同一时刻只允许一个推送，避免版本冲突
     clearTimeout(this._t);                                // 取消排队中的自动推送
     this._pushing = (async () => {
       try {
-        try { await this.pull(); } catch (e) { /* 远端可能为空 */ }
-        await pushRemote(s, this);
+        const r1 = await this._doPull().catch(() => ({ added: 0 }));   // ① 先把云端已有数据拉进来
+        await pushRemote(s, this);                                     // ② 把合并后的本机全量上传（含开启同步前的旧数据）
+        await this._doPull().catch(() => {});                          // ③ 再拉一次，收下推期间其他端写入的数据
         this.state.meta.lastSync = now();
         this.queue = []; localStorage.setItem(QKEY, '[]');
         localStorage.setItem(KEY, JSON.stringify(this.state));
-        this.emit('sync'); return { ok: true };
+        this.emit('sync'); return { ok: true, pulled: r1.added || 0 };
       } catch (e) { this.emit('syncerr'); return { ok: false, msg: e.message }; }
       finally { this._pushing = null; }
     })();
@@ -301,6 +316,15 @@ export function mergeStates(local, remote) {
     const p = tm.get(t.id); if (!p || (t.updatedAt || 0) >= (p.updatedAt || 0)) tm.set(t.id, t);
   });
   out.board = { ...deepMerge(local.board, remote.board || {}), tasks: [...tm.values()] };
+  // 健身记录 / 生理周期记录（按 id 或 date 去重合并）
+  for (const key of ['fitness.logs', 'cycle.records']) {
+    const [parent, child] = key.split('.');
+    const la = (local[parent]?.[child]) || [], lb = (remote[parent]?.[child]) || [];
+    const mm = new Map();
+    const keyOf = r => { if (!r) return null; return r.id || r.date || JSON.stringify(r); };
+    [...la, ...lb].forEach(r => { const k = keyOf(r); if (!k) return; const p = mm.get(k); if (!p || (r.updatedAt || 0) >= (p.updatedAt || 0)) mm.set(k, r); });
+    out[parent] = { ...(out[parent] || {}), [child]: [...mm.values()] };
+  }
   // 标量配置：取更新更晚的一端
   const remoteNewer = (remote.meta?.lastLocal || 0) > (local.meta?.lastLocal || 0);
   ['settings', 'paperRules', 'words', 'semester', 'dashboard', 'cycle', 'profile'].forEach(k => {

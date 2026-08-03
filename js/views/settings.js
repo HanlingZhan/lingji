@@ -72,14 +72,14 @@ function rerender() {
       <div class="row">
         <button class="btn solid" id="saveSync">保存配置</button>
         <button class="btn" id="testSync">🔍 测试连接</button>
-        <button class="btn" id="pullBtn">⬇ 从云端拉取</button>
-        <button class="btn" id="pushBtn">⬆ 推送到云端</button>
+        <button class="btn" id="pullBtn">⬇ 仅从云端拉取</button>
+        <button class="btn solid" id="pushBtn">🔄 立即双向同步</button>
         <span class="small muted">${st.meta.lastSync ? '上次同步 ' + fmtAgo(st.meta.lastSync) : '尚未同步'}</span>
       </div>
       <p class="small muted" style="margin-top:10px">
         同步策略：按记录级 <b>最后写入优先</b> 合并，Windows 网页端 / 安卓 / iPad 三端数据自动汇总，不会互相覆盖。<br>
-        离线时所有操作照常保存在本地并进入待同步队列，恢复网络后自动合并上传。<br>
-        可用方案示例：自建 Nginx + WebDAV、Cloudflare Workers KV、jsonbin.io、Supabase Storage 等任何支持 GET/PUT 的地址。
+        <b>首次让两端互通的做法</b>：在「有数据那台设备」上点「保存配置」（会自动把本机现有数据连同以前的内容一起上传），再到另一台点「🔄 立即双向同步」即可拉到对方数据。<br>
+        离线时所有操作照常保存在本地并进入待同步队列，恢复网络后自动合并上传。
       </p>
     </div></div>
 
@@ -131,7 +131,18 @@ function rerender() {
   $('#reqPerm').onclick = async () => { await requestPermission(); rerender(); };
   $('#testNotif').onclick = () => { pushNotif('🔔 测试通知', '如果你看到系统弹窗，说明桌面提醒已生效', 'test', true); toast('已发送'); };
   const saveSyncCfg = () => store.update(s => { Object.assign(s.settings.sync, { enabled: $('#syEn').checked, type: $('#syType').value, endpoint: $('#syUrl').value.trim(), token: $('#syTk').value.trim(), auto: $('#syAuto').checked }); s.settings.backendProxy = $('#proxyUrl').value.trim(); });
-  $('#saveSync').onclick = () => { saveSyncCfg(); toast('同步配置已保存', 'ok'); rerender(); };
+  $('#saveSync').onclick = async () => {
+    saveSyncCfg();
+    toast('同步配置已保存', 'ok');
+    if ($('#syEn').checked) {
+      const b = $('#saveSync'); const old = b.textContent;
+      b.disabled = true; b.textContent = '正在上传本机数据…';
+      const r = await store.push();   // 保存即触发一次完整双向同步：把开启同步前就有的旧数据也上传到云端
+      b.disabled = false; b.textContent = old;
+      if (r.ok) { toast(`已保存并上传本机数据到云端（本次新增拉取 ${r.pulled || 0} 条）`, 'ok'); rerender(); }
+      else toast('保存成功，但上传失败：' + r.msg, 'err');
+    } else rerender();
+  };
   const hints = {
     generic: '端点填任意支持 GET 拉取 / PUT 推送 JSON 的地址（如 Cloudflare Workers KV、Supabase Storage、jsonbin）。令牌作为 Bearer 发送，可留空。',
     github: '端点填仓库数据文件地址：https://api.github.com/repos/你的用户名/仓库名/contents/data/state.json （需先建仓库并建 data/ 目录）。令牌填有 repo 权限的 GitHub Personal Access Token。同一仓库也可开启 GitHub Pages 托管本应用，实现「托管+同步」一体。',
@@ -148,14 +159,17 @@ function rerender() {
   };
   $('#pullBtn').onclick = async () => {
     saveSyncCfg(); const b = $('#pullBtn'); b.disabled = true;
-    try { await store.pull(); toast('已从云端拉取并合并', 'ok'); rerender(); }
-    catch (e) { toast('拉取失败：' + e.message, 'err'); b.disabled = false; }
+    const r = await store.pull();
+    b.disabled = false;
+    if (r.ok) toast(`已从云端拉取并合并（新增 ${r.added || 0} 条）`, 'ok'); else toast('拉取失败：' + r.msg, 'err');
+    rerender();
   };
   $('#pushBtn').onclick = async () => {
     saveSyncCfg(); const b = $('#pushBtn'); b.disabled = true;
     const r = await store.push();
-    toast(r.ok ? '已推送到云端' : '推送失败：' + r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) rerender(); else b.disabled = false;
+    b.disabled = false;
+    if (r.ok) toast(`双向同步完成：已合并云端 ${r.pulled || 0} 条并上传本机数据`, 'ok'); else toast('同步失败：' + r.msg, 'err');
+    rerender();
   };
   $('#expAll').onclick = () => { download(`ScholarHub备份_${ymd(new Date())}.json`, store.export()); toast('备份已导出', 'ok'); };
   $('#impAll').onclick = () => {
