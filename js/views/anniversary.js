@@ -233,7 +233,8 @@ function drawGift() {
       ${st.people.length ? st.people.map(p => `
         <div class="list-item"><div style="flex:1">
           <div class="t">${esc(p.name)} <span class="chip gray">${esc(p.relation || '')}</span>${p.occupation ? ` <span class="chip gray">${esc(p.occupation)}</span>` : ''}${p.age ? ` <span class="chip gray">${p.age} 岁</span>` : ''}</div>
-          <div class="s">${(p.interests || []).slice(0, 6).map(t => `<span class="chip">${esc(t)}</span>`).join(' ')}</div>
+          <div class="s">${(p.interests || []).map(t => `<span class="chip">${esc(t)}</span>`).join(' ')}</div>
+          ${(p.style && p.style.length) ? `<div class="s">风格：${p.style.map(t => `<span class="chip">${esc(t)}</span>`).join(' ')}</div>` : ''}
           <div class="s">预算 ¥${p.budgetLo}-${p.budgetHi}${p.sizes ? ' · 尺码 ' + esc(p.sizes) : ''}</div>
           ${p.taboo?.length ? `<div class="s" style="color:var(--danger)">禁忌：${p.taboo.map(esc).join('、')}</div>` : ''}
         </div><div style="display:flex;flex-direction:column;gap:4px">
@@ -341,8 +342,8 @@ function personForm(rec = null) {
       { key: 'relation', label: '关系', type: 'select', value: rec?.relation || '对象', options: ['对象', '本人', '家人', '朋友', '导师'].map(v => ({ v, t: v })) },
       { key: 'occupation', label: '职业（选填，可留空）', value: rec?.occupation || '', placeholder: '如：博士在读 / 设计师 / 教师' },
       { key: 'age', label: '年龄（选填，可留空）', type: 'number', value: rec?.age ?? '', min: 1, max: 120, placeholder: '如：24' },
-      { key: 'interests', label: '兴趣偏好标签', type: 'tagpick', span: 'full', value: rec?.interests || [], suggest: INTEREST_TAGS, hint: '点击下方已有标签可选取/取消，也可自定义添加（越准推荐越对）' },
-      { key: 'style', label: '风格取向', type: 'tagpick', span: 'full', value: rec?.style || [], suggest: STYLE_TAGS, hint: '点击下方风格词选取，也可自定义（越细定位越准）' },
+      { key: 'interests', label: '兴趣偏好标签', type: 'tagpick', span: 'full', value: rec?.interests || [], suggest: INTEREST_TAGS, hint: '点击下方已有标签可选取/取消，也可自定义添加，数量不限（越准推荐越对）' },
+      { key: 'style', label: '风格取向', type: 'tagpick', span: 'full', value: rec?.style || [], suggest: STYLE_TAGS, hint: '点击下方风格词选取，也可自定义，数量不限（越细定位越准）' },
       { key: 'taboo', label: '禁忌品类', type: 'tags', span: 'full', value: rec?.taboo || [], placeholder: '如：香水, 美妆（命中将直接排除）' },
       { key: 'budgetLo', label: '常用预算下限 ¥', type: 'number', value: rec?.budgetLo ?? 100 },
       { key: 'budgetHi', label: '常用预算上限 ¥', type: 'number', value: rec?.budgetHi ?? 800 },
