@@ -2,7 +2,7 @@
 import { store, S } from '../store.js';
 import { $, $$, esc, ymd, addDays, diffDays, startOfDay, fmtRel, uid, weekdayCN } from '../utils.js';
 import { formModal, toast, confirmDlg, emptyBox, modal } from '../ui.js';
-import { GIFT_DB, INTEREST_TAGS, OCCASIONS } from '../data/gifts.js';
+import { GIFT_DB, INTEREST_TAGS, STYLE_TAGS, OCCASIONS } from '../data/gifts.js';
 
 const TYPES = [
   { v: 'yearly', t: '每年重复（生日 / 恋爱纪念日）' },
@@ -329,7 +329,7 @@ function personForm(rec = null) {
       { key: 'name', label: '称呼', required: true, value: rec?.name || '' },
       { key: 'relation', label: '关系', type: 'select', value: rec?.relation || '对象', options: ['对象', '本人', '家人', '朋友', '导师'].map(v => ({ v, t: v })) },
       { key: 'interests', label: '兴趣偏好标签', type: 'tags', span: 'full', value: rec?.interests || [], placeholder: '逗号分隔，如：JK, 二次元, 摄影, 咖啡', hint: '可选：' + INTEREST_TAGS.join('、') },
-      { key: 'style', label: '风格取向', type: 'tags', span: 'full', value: rec?.style || [], placeholder: '如：甜美, 简约' },
+      { key: 'style', label: '风格取向', type: 'tags', span: 'full', value: rec?.style || [], placeholder: '如：甜美, 简约, 复古, 极简（可多选，越细定位越准）', hint: '可选风格关键词（约 ' + (INTEREST_TAGS.length) + ' 个兴趣词的 2 倍）：' + STYLE_TAGS.join('、') },
       { key: 'taboo', label: '禁忌品类', type: 'tags', span: 'full', value: rec?.taboo || [], placeholder: '如：香水, 美妆（命中将直接排除）' },
       { key: 'budgetLo', label: '常用预算下限 ¥', type: 'number', value: rec?.budgetLo ?? 100 },
       { key: 'budgetHi', label: '常用预算上限 ¥', type: 'number', value: rec?.budgetHi ?? 800 },
