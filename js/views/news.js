@@ -23,8 +23,8 @@ export function venueDeadlines() {
 async function load() {
   loading = true; rerender();
   const jobs = [];
-  const proxy = proxyBase();
-  const hnUrl = proxy ? `${proxy}/hn?query=AI%20OR%20LLM%20OR%20%22machine%20learning%22` : 'https://hn.algolia.com/api/v1/search?query=AI%20OR%20LLM%20OR%20%22machine%20learning%22&tags=story&hitsPerPage=25&numericFilters=points%3E30';
+  // HN 由前端直连（开放 CORS，稳定）；代理只用于「译全文」等需要服务端抓取的增强能力。
+  const hnUrl = 'https://hn.algolia.com/api/v1/search?query=AI%20OR%20LLM%20OR%20%22machine%20learning%22&tags=story&hitsPerPage=25&numericFilters=points%3E30';
   jobs.push(fetch(hnUrl)
     .then(r => r.json()).then(j => (Array.isArray(j) ? j : j.hits || []).map(h => ({
       id: 'hn' + h.objectID, title: h.title, url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,

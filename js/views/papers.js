@@ -48,12 +48,7 @@ export async function fetchArxiv(maxResults = 60) {
   const kwQuery = kws.slice(0, 12).map(k => `all:"${k}"`).join('+OR+');
   const catQuery = (r.categories || []).map(c => `cat:${c}`).join('+OR+');
   const q = catQuery ? `(${kwQuery})+AND+(${catQuery})` : `(${kwQuery})`;
-  const proxy = proxyBase();
-  if (proxy) {
-    const res = await fetch(`${proxy}/arxiv?q=${encodeURIComponent(q)}&max=${maxResults}`);
-    if (!res.ok) throw new Error('代理 arXiv HTTP ' + res.status);
-    return await res.json();
-  }
+  // arXiv 由浏览器前端直连（该接口开放 CORS，稳定）。代理的 /arxiv 偶发返回空数据，故默认不走代理，避免论文列表变空。
   const url = `https://export.arxiv.org/api/query?search_query=${q}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('arXiv HTTP ' + res.status);
