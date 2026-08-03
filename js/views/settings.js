@@ -74,6 +74,7 @@ function rerender() {
         <button class="btn" id="copySync">📋 复制配置</button>
         <button class="btn" id="pasteSync">📥 粘贴配置</button>
         <button class="btn" id="testSync">🔍 测试连接</button>
+        <button class="btn" id="selfChk">🩺 一键自检</button>
         <button class="btn" id="pullBtn">⬇ 仅从云端拉取</button>
         <button class="btn solid" id="pushBtn">🔄 立即双向同步</button>
         <span class="small muted">${st.meta.lastSync ? '上次同步 ' + fmtAgo(st.meta.lastSync) : '尚未同步'}</span>
@@ -159,6 +160,29 @@ function rerender() {
     const r = await store.diagnose();
     b.disabled = false; b.textContent = old;
     toast((r.ok ? '✅ ' : '❌ ') + r.msg, r.ok ? 'ok' : 'err');
+  };
+  // 一键自检：把本机配置 + 云端真实状态逐项打印出来，方便定位「保存成功却同步不上」
+  $('#selfChk').onclick = async () => {
+    saveSyncCfg();
+    const b = $('#selfChk'); const old = b.textContent;
+    b.disabled = true; b.textContent = '检测中…';
+    const rep = await store.selfCheck();
+    b.disabled = false; b.textContent = old;
+    modal({
+      title: '🩺 同步自检报告',
+      body: `<textarea id="chkBox" rows="16" readonly style="width:100%;font-family:monospace;font-size:12px;line-height:1.6">${esc(rep)}</textarea>
+             <p class="small muted" style="margin-top:8px">令牌已自动脱敏，可整段复制发给开发者协助排查。</p>`,
+      foot: '<button class="btn" id="copyChk">📋 复制报告</button><button class="btn solid" data-close>关闭</button>',
+      onOpen: () => {
+        document.getElementById('copyChk').onclick = () => {
+          const t = document.getElementById('chkBox');
+          t.removeAttribute('readonly'); t.select(); t.setSelectionRange(0, 99999);
+          const done = () => { t.setAttribute('readonly', ''); toast('报告已复制', 'ok'); };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(done, () => { document.execCommand('copy'); done(); });
+          else { document.execCommand('copy'); done(); }
+        };
+      }
+    });
   };
   // 复制本端同步配置（端点+类型+令牌），便于在手机/iPad 上「粘贴配置」保证三端连同一个云端
   const encodeCfg = cfg => btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));

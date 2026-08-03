@@ -166,7 +166,8 @@ class Store extends EventTarget {
     this._pushing = (async () => {
       try {
         const r1 = await this._doPull().catch(() => ({ added: 0 }));   // ① 先把云端已有数据拉进来
-        await pushRemote(s, this);                                     // ② 把合并后的本机全量上传（含开启同步前的旧数据）
+        // 注意：_doPull 会用合并结果替换 this.state，必须重新取配置对象，不能复用旧引用
+        await pushRemote(this.state.settings.sync, this);              // ② 把合并后的本机全量上传（含开启同步前的旧数据）
         await this._doPull().catch(() => {});                          // ③ 再拉一次，收下推期间其他端写入的数据
         this.state.meta.lastSync = now();
         this.queue = []; localStorage.setItem(QKEY, '[]');
@@ -201,7 +202,9 @@ class Store extends EventTarget {
             const arrAt = (path) => { let o = stj; for (const p of path.split('.')) { o = o?.[p]; if (o === undefined) return []; } return Array.isArray(o) ? o : []; };
             const cnt = ['reminders', 'board.tasks', 'courses', 'paperLib', 'anniversaries', 'fitness.logs', 'cycle.records']
               .reduce((a, k) => a + arrAt(k).length, 0);
-            return { ok: true, msg: `连接正常，云端目前有 ${cnt} 条记录（同步时会与本地合并，不会丢数据）` };
+            const kb = (uploadSize(this.state) / 1024).toFixed(0);
+            const warn = kb > 900 ? `　⚠️ 本机待上传 ${kb} KB，已超 GitHub 单文件上限，请先「恢复默认背景」` : `　本机待上传 ${kb} KB`;
+            return { ok: kb <= 900, msg: `连接正常，云端目前有 ${cnt} 条记录（同步会与本地合并，不会丢数据）${warn}` };
           }
         } catch { /* 非标准 JSON，忽略统计 */ }
       }
@@ -210,6 +213,56 @@ class Store extends EventTarget {
       const net = /Failed to fetch|NetworkError|Load failed/i.test(e.message);
       return { ok: false, msg: net ? '网络请求被拦截（可能是断网、代理或浏览器插件拦截了跨域请求）' : e.message };
     }
+  }
+
+  // 一键自检：逐项输出可复制的排查报告（令牌自动脱敏）
+  async selfCheck() {
+    const s = this.state.settings.sync, st = this.state, L = [];
+    const mask = t => !t ? '(空)' : `${t.slice(0, 8)}…${t.slice(-4)}（长度 ${t.length}）`;
+    L.push('【灵记 · 同步自检】' + new Date().toLocaleString());
+    L.push('设备：' + navigator.userAgent.slice(0, 70));
+    L.push('网络：' + (navigator.onLine ? '在线' : '离线'));
+    L.push('---- 本机配置 ----');
+    L.push('同步开关：' + (s.enabled ? '✅ 已启用' : '❌ 未启用') + '　自动推送：' + (s.auto ? '开' : '关'));
+    L.push('后端类型：' + s.type);
+    L.push('端点：' + (s.endpoint || '❌ 空'));
+    L.push('令牌：' + mask(s.token));
+    L.push('---- 本机数据 ----');
+    L.push(`提醒 ${st.reminders.length}｜看板 ${st.board.tasks.length}｜课程 ${st.courses.length}｜文库 ${st.paperLib.length}｜纪念日 ${st.anniversaries.length}｜健身 ${st.fitness?.logs?.length || 0}｜周期 ${st.cycle?.records?.length || 0}`);
+    L.push('合计 ' + this._countRecords() + ' 条　待上传 ' + (uploadSize(st) / 1024).toFixed(0) + ' KB');
+    L.push('上次同步：' + (st.meta.lastSync ? new Date(st.meta.lastSync).toLocaleString() : '从未成功同步'));
+    L.push('---- 云端探测 ----');
+    if (!s.endpoint) { L.push('❌ 未填端点，无法探测'); return L.join('\n'); }
+    try {
+      const hd = s.type === 'github' ? { Authorization: 'Bearer ' + s.token, Accept: 'application/vnd.github+json' }
+        : (s.token ? { Authorization: (s.type === 'webdav' ? 'Basic ' : 'Bearer ') + s.token } : {});
+      const r = await fetch(s.endpoint, { headers: hd });
+      L.push('HTTP 状态：' + r.status + (r.ok ? ' ✅' : ' ❌'));
+      const rl = r.headers.get('x-ratelimit-remaining');
+      if (rl !== null) L.push('GitHub 接口剩余额度：' + rl);
+      if (r.status === 404) L.push('云端数据文件不存在（首次推送会自动创建；若一直 404 请检查仓库名/路径/令牌授权范围）');
+      else if (!r.ok) L.push('说明：' + (s.type === 'github' ? (await ghError(r)).message : 'HTTP ' + r.status));
+      else {
+        const txt = await r.text();
+        if (s.type === 'github') {
+          const j = JSON.parse(txt);
+          L.push('云端文件体积：' + (j.size / 1024).toFixed(0) + ' KB　sha：' + String(j.sha).slice(0, 8));
+          const raw = b64decodeUnicode(j.content || '');
+          if (!raw.trim()) L.push('⚠️ 云端文件是空的（曾被空数据覆盖）→ 请在有数据的设备点「🔄 立即双向同步」');
+          else {
+            const o = JSON.parse(raw);
+            const at = p => { let x = o; for (const k of p.split('.')) { x = x?.[k]; if (x === undefined) return []; } return Array.isArray(x) ? x : []; };
+            L.push(`云端：提醒 ${at('reminders').length}｜看板 ${at('board.tasks').length}｜课程 ${at('courses').length}｜文库 ${at('paperLib').length}｜纪念日 ${at('anniversaries').length}｜健身 ${at('fitness.logs').length}｜周期 ${at('cycle.records').length}`);
+            L.push('云端最后写入设备：' + String(o.meta?.device || '未知').slice(0, 40));
+            L.push('云端最后写入时间：' + (o.meta?.lastLocal ? new Date(o.meta.lastLocal).toLocaleString() : '未知'));
+          }
+        } else L.push('响应长度：' + txt.length + ' 字符');
+      }
+    } catch (e) {
+      L.push('❌ 探测失败：' + e.message);
+      if (/Failed to fetch|NetworkError|Load failed/i.test(e.message)) L.push('（多为断网、系统时间不对、浏览器插件或运营商拦截跨域请求）');
+    }
+    return L.join('\n');
   }
 
   export() { return JSON.stringify({ ...this.state, _exportedAt: new Date().toISOString() }, null, 2); }
@@ -276,7 +329,8 @@ async function ghPut(s, state, store) {
   let r;
   for (let attempt = 0; attempt < 8; attempt++) {
     // 每次都基于最新（可能已合并远端）的本机状态重新构建，确保不丢失其他端写入的数据
-    const payload = JSON.stringify(store.state, (k, v) => k === '_ghSha' ? undefined : v);
+    const payload = JSON.stringify(uploadState(store.state));
+    if (payload.length > 900 * 1024) throw new Error('待上传数据约 ' + (payload.length / 1024).toFixed(0) + ' KB，超过 GitHub 单文件同步上限（约 1MB）。请在设置里「恢复默认背景」或清理文库后重试');
     const body = { message: 'sync 灵记 ' + new Date().toISOString().slice(0, 19), content: b64encodeUnicode(payload) };
     if (sha) body.sha = sha; else delete body.sha;
     r = await fetch(s.endpoint, { method: 'PUT', headers: { Authorization: 'Bearer ' + s.token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -306,9 +360,25 @@ async function fetchRemote(s, store) {
   return genGet(s);
 }
 async function pushRemote(s, store) {
-  if (s.type === 'github') return ghPut(s, store.state, store);
-  if (s.type === 'webdav') return wdPut(s, store.state);
-  return genPut(s, store.state);
+  const body = uploadState(store.state);
+  if (s.type === 'github') return ghPut(s, body, store);
+  if (s.type === 'webdav') return wdPut(s, body);
+  return genPut(s, body);
+}
+// 构造「上传到云端的净化版数据」：
+// 1) 不上传同步端点与令牌（避免凭据进入仓库，也避免覆盖其他设备的配置）
+// 2) 不上传背景图 DataURL 与论文抓取缓存（体积大，GitHub Contents API 单文件约 1MB 上限，超限会导致同步一直失败）
+export function uploadState(state) {
+  const out = JSON.parse(JSON.stringify(state, (k, v) => k === '_ghSha' ? undefined : v));
+  out.settings = out.settings || {};
+  delete out.settings.bg;
+  out.settings.sync = { enabled: true, type: state.settings?.sync?.type || 'github', auto: true, endpoint: '', token: '' };
+  out.paperCache = { at: 0, items: [] };
+  return out;
+}
+// 估算本机待上传体积（字节）
+export function uploadSize(state) {
+  try { return new Blob([JSON.stringify(uploadState(state))]).size; } catch { return JSON.stringify(uploadState(state)).length; }
 }
 
 // 记录级 last-write-wins 合并
@@ -341,11 +411,24 @@ export function mergeStates(local, remote) {
     [...la, ...lb].forEach(r => { const k = keyOf(r); if (!k) return; const p = mm.get(k); if (!p || (r.updatedAt || 0) >= (p.updatedAt || 0)) mm.set(k, r); });
     out[parent] = { ...(out[parent] || {}), [child]: [...mm.values()] };
   }
+  // 先记下上面按记录级合并好的结果，避免被下面的整体覆盖冲掉
+  const mergedCycleRecords = out.cycle?.records;
+  const mergedFitnessLogs = out.fitness?.logs;
   // 标量配置：取更新更晚的一端
   const remoteNewer = (remote.meta?.lastLocal || 0) > (local.meta?.lastLocal || 0);
   ['settings', 'paperRules', 'words', 'semester', 'dashboard', 'cycle', 'profile'].forEach(k => {
     if (remoteNewer && remote[k]) out[k] = deepMerge(local[k], remote[k]);
   });
+  // ⚠️ 关键保护：同步端点/令牌、背景图、论文缓存永远以本机为准。
+  // 否则云端一份 enabled:false 或 endpoint 为空的旧配置会在 pull 时把本机同步配置洗掉，
+  // 造成「保存成功却再也同步不上」的自毁循环。
+  out.settings = { ...(out.settings || {}) };
+  out.settings.sync = { ...(local.settings?.sync || {}) };
+  out.settings.bg = local.settings?.bg || '';
+  out.settings.backendProxy = (local.settings?.backendProxy || remote.settings?.backendProxy || '');
+  out.paperCache = local.paperCache;
+  if (mergedCycleRecords) out.cycle = { ...out.cycle, records: mergedCycleRecords };
+  if (mergedFitnessLogs) out.fitness = { ...out.fitness, logs: mergedFitnessLogs };
   out.meta = { ...local.meta, lastSync: now() };
   return out;
 }
