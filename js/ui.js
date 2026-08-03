@@ -102,7 +102,7 @@ export function fieldHTML(f) {
     case 'tagpick': {
       const tv = Array.isArray(v) ? v : String(v).split(',').map(s => s.trim()).filter(Boolean);
       const sug = (f.suggest || []).map(t => `<span class="tp-chip sug${tv.includes(t) ? ' active' : ''}" data-t="${esc(t)}">${esc(t)}</span>`).join('');
-      const sel = tv.length ? tv.map(t => `<span class="tp-chip sel" data-t="${esc(t)}">${esc(t)}<button type="button" class="tp-x" data-t="${esc(t)}">×</button></span>`).join('') : '<span class="small muted">尚未选择</span>';
+      const sel = tv.length ? tv.map(t => `<span class="tp-chip sel" data-t="${esc(t)}">${esc(t)}<span class="tp-x" data-t="${esc(t)}">×</span></span>`).join('') : '<span class="small muted">尚未选择</span>';
       inner = `<div class="tagpick" data-key="${f.key}">
         <div class="tp-selected" data-sel>${sel}</div>
         <div class="tp-add"><input type="text" class="tp-input" placeholder="自定义标签，回车或点添加"><button type="button" class="tp-addbtn">+ 添加</button></div>
@@ -120,7 +120,27 @@ export function fieldHTML(f) {
 function tpGet(hidden) { return (hidden.value || '').split(',').map(s => s.trim()).filter(Boolean); }
 function tpSet(hidden, selBox, sugBox, arr) {
   hidden.value = arr.join(',');
-  selBox.innerHTML = arr.length ? arr.map(t => `<span class="tp-chip sel" data-t="${esc(t)}">${esc(t)}<button type="button" class="tp-x" data-t="${esc(t)}">×</button></span>`).join('') : '<span class="small muted">尚未选择</span>';
+  // 用 DOM API 构建，避免 innerHTML 解析 <button> 在 click 上下文中被浏览器当成新 click 自动派发
+  selBox.textContent = '';
+  if (!arr.length) {
+    const s = document.createElement('span');
+    s.className = 'small muted';
+    s.textContent = '尚未选择';
+    selBox.appendChild(s);
+  } else {
+    arr.forEach(t => {
+      const chip = document.createElement('span');
+      chip.className = 'tp-chip sel';
+      chip.dataset.t = t;
+      chip.append(document.createTextNode(t));
+      const x = document.createElement('span');
+      x.className = 'tp-x';
+      x.dataset.t = t;
+      x.textContent = '×';
+      chip.appendChild(x);
+      selBox.appendChild(chip);
+    });
+  }
   sugBox.querySelectorAll('.tp-chip').forEach(c => c.classList.toggle('active', arr.includes(c.dataset.t)));
 }
 
