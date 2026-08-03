@@ -272,19 +272,21 @@ async function ghGet(s, store) {
   try { return JSON.parse(text); } catch { throw new Error('云端数据不是合法 JSON，已跳过合并'); }
 }
 async function ghPut(s, state, store) {
-  const payload = JSON.stringify(state, (k, v) => k === '_ghSha' ? undefined : v);
-  const body = { message: 'sync 灵记 ' + new Date().toISOString().slice(0, 19), content: b64encodeUnicode(payload) };
-  // sha 优先用上次写入/读取返回的值：GitHub 写入后短时间内 GET 可能仍返回旧 sha
   let sha = store.state.meta._ghSha || await ghSha(s);
   let r;
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    // 每次都基于最新（可能已合并远端）的本机状态重新构建，确保不丢失其他端写入的数据
+    const payload = JSON.stringify(store.state, (k, v) => k === '_ghSha' ? undefined : v);
+    const body = { message: 'sync 灵记 ' + new Date().toISOString().slice(0, 19), content: b64encodeUnicode(payload) };
     if (sha) body.sha = sha; else delete body.sha;
     r = await fetch(s.endpoint, { method: 'PUT', headers: { Authorization: 'Bearer ' + s.token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (r.ok) break;
     if (r.status !== 409 && r.status !== 422) break;
-    // 版本冲突：等待远端一致性收敛后重取 sha 再试
-    await new Promise(res => setTimeout(res, 400 * (attempt + 1)));
-    sha = await ghSha(s);
+    // 版本冲突：云端已被其他端写入。重新拉取远端最新内容并与本地合并，再带新 sha 重试
+    await new Promise(res => setTimeout(res, 500 * (attempt + 1)));
+    const remote = await ghGet(s, store).catch(() => null);
+    if (remote) store.state = mergeStates(store.state, remote);
+    sha = store.state.meta._ghSha || await ghSha(s);
   }
   if (!r.ok) throw await ghError(r);
   try { store.state.meta._ghSha = (await r.json()).content.sha; } catch { }
