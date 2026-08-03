@@ -20,24 +20,54 @@ export function venueDeadlines() {
   }).sort((a, b) => a.left - b.left);
 }
 
-async function load() {
-  loading = true; rerender();
-  const jobs = [];
-  // HN 由前端直连（开放 CORS，稳定）；代理只用于「译全文」等需要服务端抓取的增强能力。
+// ① 云端预抓取：GitHub Actions 每天定时在服务器上抓好写入 data/news.json，同源静态文件、秒开
+async function loadCloudNews() {
+  const u = new URL('data/news.json', document.baseURI);
+  u.searchParams.set('t', Math.floor(Date.now() / 3e5));
+  const r = await fetch(u.href, { cache: 'no-cache' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (!j || (!(j.hn || []).length && !(j.gh || []).length)) throw new Error('空数据');
+  return { hn: j.hn || [], gh: j.gh || [], at: j.generatedAt || Date.now(), origin: 'cloud' };
+}
+
+// ② 浏览器直连：作为补充与兜底（这两个接口开放 CORS，能连上就用更实时的数据）
+async function loadLiveNews() {
   const hnUrl = 'https://hn.algolia.com/api/v1/search?query=AI%20OR%20LLM%20OR%20%22machine%20learning%22&tags=story&hitsPerPage=25&numericFilters=points%3E30';
-  jobs.push(fetch(hnUrl)
-    .then(r => r.json()).then(j => (Array.isArray(j) ? j : j.hits || []).map(h => ({
+  const since = ymd(addDays(new Date(), -21));
+  const [hn, gh] = await Promise.all([
+    fetch(hnUrl).then(r => r.json()).then(j => (Array.isArray(j) ? j : j.hits || []).map(h => ({
       id: 'hn' + h.objectID, title: h.title, url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
       points: h.points, comments: h.num_comments, at: h.created_at, by: h.author
-    }))).catch(() => []));
-  const since = ymd(addDays(new Date(), -21));
-  jobs.push(fetch(`https://api.github.com/search/repositories?q=topic:llm+OR+topic:computer-vision+OR+topic:robotics+pushed:>${since}&sort=stars&order=desc&per_page=15`)
-    .then(r => r.json()).then(j => (j.items || []).map(x => ({
-      id: 'gh' + x.id, title: x.full_name, desc: x.description || '', url: x.html_url,
-      stars: x.stargazers_count, lang: x.language, at: x.pushed_at, topics: x.topics || []
-    }))).catch(() => []));
-  const [hn, gh] = await Promise.all(jobs);
-  cache = { hn, gh, at: Date.now() };
+    }))).catch(() => []),
+    // GitHub 搜索不支持多个 topic 用 OR 串起来再叠加 pushed 限定（会 422），需逐个 topic 查询后合并
+    Promise.all(['llm', 'computer-vision', 'robotics'].map(t =>
+      fetch(`https://api.github.com/search/repositories?q=topic%3A${t}+pushed%3A%3E${since}&sort=stars&order=desc&per_page=8`)
+        .then(r => r.ok ? r.json() : { items: [] }).catch(() => ({ items: [] }))
+    )).then(rs => {
+      const seen = new Set(), out = [];
+      rs.forEach(j => (j.items || []).forEach(x => {
+        if (seen.has(x.id)) return; seen.add(x.id);
+        out.push({
+          id: 'gh' + x.id, title: x.full_name, desc: x.description || '', url: x.html_url,
+          stars: x.stargazers_count, lang: x.language, at: x.pushed_at, topics: x.topics || []
+        });
+      }));
+      return out.sort((a, b) => b.stars - a.stars).slice(0, 15);
+    }).catch(() => [])
+  ]);
+  if (!hn.length && !gh.length) throw new Error('直连无数据');
+  return { hn, gh, at: Date.now(), origin: 'live' };
+}
+
+async function load() {
+  loading = true; rerender();
+  // 先渲染云端结果让页面立刻有内容，再后台尝试直连刷新；直连失败也不会把已有内容清空
+  const pre = await loadCloudNews().catch(() => null);
+  if (pre) { cache = pre; loading = false; rerender(); }
+  const live = await loadLiveNews().catch(() => null);
+  if (live) cache = live;
+  else if (!pre) cache = { hn: [], gh: [], at: Date.now(), origin: 'none' };
   loading = false; rerender();
 }
 
@@ -50,6 +80,7 @@ function rerender() {
     <div class="seg" id="areaSeg">
       ${[['all', '全部'], ['计算机视觉', 'CV'], ['机器学习', 'ML'], ['自然语言处理', 'NLP'], ['机器人', '机器人']].map(([v, t]) => `<button data-a="${v}" class="${area === v ? 'active' : ''}">${t}</button>`).join('')}
     </div>
+    ${cache.origin === 'cloud' ? '<span class="chip ok" title="由 GitHub 服务器每天定时抓取，不受本机网络限制">☁️ 云端自动抓取</span>' : cache.origin === 'live' ? '<span class="chip gray">⚡ 本机直连</span>' : ''}
     <span class="small muted">${cache.at ? '更新于 ' + fmtAgo(cache.at) : ''}</span>
     <div class="spacer"></div>
     <button class="primary-btn" id="reload" ${loading ? 'disabled' : ''}>${loading ? '加载中…' : '⟳ 刷新资讯'}</button>

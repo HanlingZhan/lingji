@@ -16,7 +16,17 @@ const DEFAULT_TAGS = ['待精读', '相关工作', '实验参考', '方法借鉴
 
 let tab = 'feed', host = null, loading = false, lastResult = [];
 
-export function render(el) { host = el; rerender(); }
+export function render(el) {
+  host = el; rerender();
+  autoRefresh();
+}
+
+// 打开页面时：本地缓存为空或已超过 3 小时，就静默拉一次云端自动抓取的结果
+function autoRefresh() {
+  const c = S().paperCache || {};
+  const stale = !c.at || (Date.now() - c.at > 3 * 3600e3);
+  if (stale && !loading && navigator.onLine) runFetch('cloud', true);
+}
 
 function rerender() {
   if (!host) return;
@@ -37,6 +47,18 @@ function rerender() {
 }
 
 // ---------------- 抓取 ----------------
+// 云端预抓取：由仓库里的 GitHub Actions 每天定时在服务器上抓好写入 data/feed.json，
+// 前端只读同源静态文件——无跨域、无反爬、手机弱网也秒开。
+export async function loadCloudFeed() {
+  const u = new URL('data/feed.json', document.baseURI);
+  u.searchParams.set('t', Math.floor(Date.now() / 3e5)); // 5 分钟粒度，绕开 SW / CDN 缓存
+  const r = await fetch(u.href, { cache: 'no-cache' });
+  if (!r.ok) throw new Error('尚未生成（HTTP ' + r.status + '）');
+  const j = await r.json();
+  if (!j || !Array.isArray(j.items) || !j.items.length) throw new Error('云端文件里暂无论文');
+  return j;
+}
+
 function activeKeywords() {
   return S().paperRules.groups.filter(g => g.on).flatMap(g => g.kw.map(k => ({ k, group: g.name })));
 }
@@ -160,40 +182,62 @@ export function scorePaper(p) {
   return { score: Math.min(100, Math.round(score)), hits, venueHit: v, authorHit: a };
 }
 
-async function runFetch() {
+/**
+ * @param {'cloud'|'live'} mode  cloud=优先用服务器每天自动抓好的结果（失败自动回落直连）；live=强制浏览器实时直连
+ * @param {boolean} silent       静默模式：不弹提示（用于页面打开时的自动刷新）
+ */
+async function runFetch(mode = 'cloud', silent = false) {
   if (loading) return;
   loading = true; rerenderFeedHead();
   const r = S().paperRules; const errs = [];
-  let all = [];
-  const jobs = [];
-  if (r.sources.arxiv) jobs.push(fetchArxiv(r.maxPerDay || 40).catch(e => { errs.push('arXiv: ' + e.message); return []; }));
-  if (r.sources.openreview) jobs.push(fetchOpenReview().catch(e => { errs.push('OpenReview 抓取受限'); return []; }));
-  if (r.sources.pwc) jobs.push(fetchPwC().catch(e => { errs.push('Papers with Code 抓取受限'); return []; }));
-  const results = await Promise.all(jobs);
-  results.forEach(x => all.push(...x));
-  // 去重 + 评分 + 阈值过滤
+  let all = [], origin = 'live', remoteAt = 0;
+
+  if (mode === 'cloud') {
+    try {
+      const j = await loadCloudFeed();
+      all = j.items; origin = 'cloud'; remoteAt = j.generatedAt || 0;
+      (j.errors || []).forEach(e => errs.push(e));
+    } catch (e) {
+      errs.push('云端自动抓取暂不可用（' + e.message + '），已改用浏览器直连');
+      mode = 'live';
+    }
+  }
+  if (mode === 'live') {
+    const jobs = [];
+    if (r.sources.arxiv) jobs.push(fetchArxiv(r.maxPerDay || 40).catch(e => { errs.push('arXiv: ' + e.message); return []; }));
+    if (r.sources.openreview) jobs.push(fetchOpenReview().catch(() => { errs.push('OpenReview 抓取受限'); return []; }));
+    if (r.sources.pwc) jobs.push(fetchPwC().catch(() => { errs.push('Papers with Code 抓取受限'); return []; }));
+    const results = await Promise.all(jobs);
+    results.forEach(x => all.push(...x));
+  }
+
+  // 去重 + 评分 + 阈值过滤（始终在本地做：改阈值/排除词立刻生效，不必等下次自动抓取）
   const seen = new Set(); const scored = [];
   all.forEach(p => {
+    if (!p || !p.title) return;
     const key = p.title.toLowerCase().replace(/\W+/g, '').slice(0, 60);
     if (seen.has(key)) return; seen.add(key);
     const s = scorePaper(p);
     if (s.score >= (r.threshold || 30)) scored.push({ ...p, ...s });
   });
   scored.sort((a, b) => b.score - a.score || (b.published || '').localeCompare(a.published || ''));
-  store.update(s => { s.paperCache = { at: Date.now(), items: scored.slice(0, 120), errs }; });
+  store.update(s => { s.paperCache = { at: Date.now(), origin, remoteAt, total: all.length, items: scored.slice(0, 120), errs }; });
   lastResult = scored;
   loading = false;
   rerender();
-  toast(errs.length ? `抓取完成 ${scored.length} 篇（${errs.length} 个源受限）` : `抓取完成，${scored.length} 篇达标`, errs.length ? '' : 'ok');
+  if (silent) return;
+  const from = origin === 'cloud' ? '云端自动抓取' : '浏览器直连';
+  toast(`${from}完成：${all.length} 篇候选中 ${scored.length} 篇达标${errs.length ? `（${errs.length} 项提示）` : ''}`, errs.length ? '' : 'ok');
 }
 
 // ---------------- 视图：推送流 ----------------
 function rerenderFeedHead() {
-  const a = $('#pActions'); if (a) a.innerHTML = `<button class="btn" id="linkBtn">🔗 其他平台直达</button> <button class="primary-btn" id="fetchBtn" ${loading ? 'disabled' : ''}>${loading ? '抓取中…' : '⬇ 立即抓取'}</button>`;
+  const a = $('#pActions'); if (a) a.innerHTML = `<button class="btn" id="linkBtn">🔗 其他平台直达</button> <button class="btn" id="liveBtn" ${loading ? 'disabled' : ''} title="绕过云端，直接用本机网络实时抓一次">⚡ 直连抓取</button> <button class="primary-btn" id="fetchBtn" ${loading ? 'disabled' : ''}>${loading ? '抓取中…' : '⬇ 立即更新'}</button>`;
   bindFeedHead();
 }
 function bindFeedHead() {
-  const f = $('#fetchBtn'); if (f) f.onclick = runFetch;
+  const f = $('#fetchBtn'); if (f) f.onclick = () => runFetch('cloud');
+  const v = $('#liveBtn'); if (v) v.onclick = () => runFetch('live');
   const l = $('#linkBtn'); if (l) l.onclick = openExternalLinks;
 }
 
@@ -206,8 +250,11 @@ function drawFeed() {
     <div class="row" style="margin-bottom:12px">
       <span class="chip">${items.length} 篇达标（阈值 ${st.paperRules.threshold}）</span>
       ${Object.entries(groups).map(([k, v]) => `<span class="chip gray">${k} ${v.length}</span>`).join('')}
-      <span class="small muted">${cache.at ? '上次抓取 ' + fmtAgo(cache.at) : '尚未抓取'}</span>
-      ${(cache.errs || []).length ? `<span class="chip warn" title="${esc((cache.errs || []).join('；'))}">${cache.errs.length} 个源受限（点「其他平台直达」手动检索）</span>` : ''}
+      ${cache.origin === 'cloud'
+      ? `<span class="chip ok" title="由 GitHub Actions 每天定时在服务器上抓取，无需本机翻墙">☁️ 云端自动抓取 · ${cache.remoteAt ? fmtAgo(cache.remoteAt) + '更新' : '已就绪'}</span>`
+      : `<span class="chip gray">⚡ 本机直连抓取</span>`}
+      <span class="small muted">${cache.at ? '本机同步于 ' + fmtAgo(cache.at) : '尚未抓取'}</span>
+      ${(cache.errs || []).length ? `<span class="chip warn" title="${esc((cache.errs || []).join('；'))}">${cache.errs.length} 项提示（悬停查看）</span>` : ''}
       <div class="spacer"></div>
       <input type="text" id="pSearch" placeholder="在结果中筛选…" style="width:190px">
       <button class="btn" id="bibAll">导出全部 BibTeX</button>
@@ -367,7 +414,15 @@ function drawRules() {
         <label class="fld"><span>相关度阈值（0-100）</span><input type="number" id="thr" value="${r.threshold}" min="0" max="100"></label>
         <label class="fld"><span>arXiv 单次最大抓取量</span><input type="number" id="mpd" value="${r.maxPerDay}" min="10" max="200"></label>
       </div>
-      <p class="small muted" style="margin-top:8px">arXiv 每日更新，建议每天上午抓取一次；OpenReview 与 Papers with Code 按周聚合更新即可。CVF 与 Scholar 无公开 API，提供检索直达。</p>
+      <p class="small muted" style="margin-top:8px">CVF 与 Google Scholar 无公开 API，提供检索直达。</p>
+      <div class="list-item" style="margin-top:10px;align-items:flex-start;background:var(--bg-soft, rgba(0,0,0,.03));border-radius:8px;padding:10px">
+        <div style="flex:1">
+          <div class="t">☁️ 云端自动抓取（已开启）</div>
+          <div class="s" style="line-height:1.7">每天 <b>06:20</b> 与 <b>18:20</b>（北京时间）由 GitHub 服务器自动抓取，结果存成静态文件。
+          你打开这一页时会自动读取，<b>不需要点抓取、也不受手机网络限制</b>。<br>
+          这里保存的关键词会随云同步上传，下一次自动抓取就按新规则执行；想立刻生效可点右上角「⬇ 立即更新」或「⚡ 直连抓取」。</div>
+        </div>
+      </div>
       <button class="btn solid" id="saveRules" style="margin-top:10px">保存规则</button>
     </div></div>
   </div>`;

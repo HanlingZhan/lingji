@@ -112,7 +112,7 @@ const W = {
         <div class="s"><span class="score ${p.score >= 70 ? 'hi' : ''}">${p.score}</span>
         <span class="source-tag">${esc(p.source)}</span> ${(p.hits || []).slice(0, 3).map(h => `<span class="chip">${esc(h)}</span>`).join('')}
         <span class="muted">${esc(p.published || '')}</span></div></div></div>`).join('') || emptyBox('点击「抓取」获取今日匹配论文', '📄'),
-      '<button class="btn sm" data-act="fetchPapers">⬇ 抓取</button><button class="btn sm" data-go="papers">全部</button>');
+      '<button class="btn sm" data-act="fetchPapers">⬇ 更新</button><button class="btn sm" data-go="papers">全部</button>');
   },
   board: () => {
     const s = boardSummary();
@@ -188,7 +188,7 @@ function bindEvents(el) {
       if (a === 'newRem') openReminderForm();
       if (a === 'newTask') openTaskForm();
       if (a === 'cfg') openConfig();
-      if (a === 'fetchPapers') { toast('正在抓取 arXiv…'); await runFetch(); render(el); }
+      if (a === 'fetchPapers') { toast('正在更新论文…'); await runFetch('cloud'); render(el); }
       return;
     }
     const go = e.target.closest('[data-go]'); if (go) { window.SH.go(go.dataset.go); return; }
