@@ -177,7 +177,7 @@ class Store extends EventTarget {
     })();
     return this._pushing;
   }
-  // 连通性自检：返回可读的诊断结论
+  // 连通性自检：返回可读的诊断结论（含云端当前记录条数）
   async diagnose() {
     const s = this.state.settings.sync;
     if (!s.endpoint) return { ok: false, msg: '还没填写同步端点' };
@@ -191,6 +191,20 @@ class Store extends EventTarget {
       if (r.status === 404) return { ok: true, msg: '连接正常：云端数据文件还不存在，首次推送会自动创建' };
       if (!r.ok && s.type === 'github') throw await ghError(r);
       if (!r.ok) throw new Error('HTTP ' + r.status);
+      const text = await r.text();
+      if (s.type === 'github' && text.trim()) {
+        try {
+          const j = JSON.parse(text);
+          const raw = b64decodeUnicode(j.content || '');
+          const stj = raw.trim() ? JSON.parse(raw) : null;
+          if (stj) {
+            const arrAt = (path) => { let o = stj; for (const p of path.split('.')) { o = o?.[p]; if (o === undefined) return []; } return Array.isArray(o) ? o : []; };
+            const cnt = ['reminders', 'board.tasks', 'courses', 'paperLib', 'anniversaries', 'fitness.logs', 'cycle.records']
+              .reduce((a, k) => a + arrAt(k).length, 0);
+            return { ok: true, msg: `连接正常，云端目前有 ${cnt} 条记录（同步时会与本地合并，不会丢数据）` };
+          }
+        } catch { /* 非标准 JSON，忽略统计 */ }
+      }
       return { ok: true, msg: '连接正常，云端数据文件可读写' };
     } catch (e) {
       const net = /Failed to fetch|NetworkError|Load failed/i.test(e.message);

@@ -71,6 +71,8 @@ function rerender() {
         <input type="url" id="proxyUrl" value="${esc(st.settings.backendProxy)}" placeholder="留空=前端直连；填 Cloudflare Workers 地址可解锁论文/资讯实时抓取+逐段翻译"></label>
       <div class="row">
         <button class="btn solid" id="saveSync">保存配置</button>
+        <button class="btn" id="copySync">📋 复制配置</button>
+        <button class="btn" id="pasteSync">📥 粘贴配置</button>
         <button class="btn" id="testSync">🔍 测试连接</button>
         <button class="btn" id="pullBtn">⬇ 仅从云端拉取</button>
         <button class="btn solid" id="pushBtn">🔄 立即双向同步</button>
@@ -149,13 +151,46 @@ function rerender() {
     webdav: '端点填完整文件路径，如 https://dav.example.com/scholarhub/state.json 。令牌填 Basic 凭据：先把「用户名:密码」用 Base64 编码后填入（Windows 可用 certutil，mac/Linux 用 base64 命令）。'
   };
   const updHint = () => { const t = $('#syType').value; $('#syHint').textContent = hints[t] || ''; };
-  $('#syType').onchange = updHint; updHint();
+  $('#syType').onchange = () => { updHint(); if ($('#syType').value === 'github' && !$('#syUrl').value.trim()) $('#syUrl').value = 'https://api.github.com/repos/HanlingZhan/lingji/contents/data/state.json'; };
+  updHint();
   $('#testSync').onclick = async () => {
     saveSyncCfg(); const b = $('#testSync'); const old = b.textContent;
     b.disabled = true; b.textContent = '检测中…';
     const r = await store.diagnose();
     b.disabled = false; b.textContent = old;
     toast((r.ok ? '✅ ' : '❌ ') + r.msg, r.ok ? 'ok' : 'err');
+  };
+  // 复制本端同步配置（端点+类型+令牌），便于在手机/iPad 上「粘贴配置」保证三端连同一个云端
+  const encodeCfg = cfg => btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
+  const decodeCfg = code => JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+  $('#copySync').onclick = () => {
+    saveSyncCfg();
+    const s = S().settings.sync;
+    if (!s.endpoint) return toast('请先填写同步端点再复制', 'err');
+    const code = encodeCfg({ t: s.type, e: s.endpoint, k: s.token });
+    const show = () => modal({ title: '复制同步配置', body: `<p class="small muted">复制下面这串配置码，到手机/iPad 设置页点「📥 粘贴配置」即可一键对齐云端。也可发给其他设备。</p><textarea id="cfgBox" rows="3" style="width:100%;font-family:monospace">${code}</textarea>`, foot: '<button class="btn" data-close>关闭</button>', onOpen: (b) => { const t = b.querySelector('#cfgBox'); t.select(); } });
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(() => toast('同步配置已复制到剪贴板，去其他设备「粘贴配置」', 'ok'), show);
+    else show();
+  };
+  $('#pasteSync').onclick = () => {
+    modal({
+      title: '粘贴同步配置',
+      body: `<p class="small muted">把另一台设备「📋 复制配置」得到的配置码粘贴到这里，会自动填入并立即同步：</p><textarea id="cfgIn" rows="3" style="width:100%;font-family:monospace" placeholder="粘贴配置码"></textarea>`,
+      foot: '<button class="btn" data-close>取消</button><button class="btn solid" id="doPaste">填入并同步</button>',
+      onOpen: (b, close) => {
+        b.querySelector('#doPaste').onclick = async () => {
+          try {
+            const cfg = decodeCfg(b.querySelector('#cfgIn').value);
+            store.update(s => { Object.assign(s.settings.sync, { enabled: true, type: cfg.t, endpoint: cfg.e, token: cfg.k, auto: true }); });
+            close();
+            toast('已填入云端配置，开始同步…', 'ok');
+            const r = await store.push();
+            if (r.ok) toast(`已与云端合并（拉取 ${r.pulled || 0} 条并上传本机数据）`, 'ok'); else toast('同步失败：' + r.msg, 'err');
+            rerender();
+          } catch (e) { toast('配置码无效：' + e.message, 'err'); }
+        };
+      }
+    });
   };
   $('#pullBtn').onclick = async () => {
     saveSyncCfg(); const b = $('#pullBtn'); b.disabled = true;
