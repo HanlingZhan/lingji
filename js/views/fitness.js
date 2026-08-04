@@ -17,14 +17,14 @@ function rerender() {
   const lost = (first && last) ? (first.weight - last.weight) : 0;
   const toGoal = last ? (last.weight - (f.goal || 0)) : 0;
   host.innerHTML = `
-  <div class="hero" style="background:linear-gradient(120deg,#0d47a1,#1565c0 55%,#42a5f5)">
+  <div class="hero" style="background:linear-gradient(120deg,var(--primary-050),color-mix(in srgb,var(--accent) 22%,var(--surface)))">
     <div class="hero-main">
       <h2>💪 温和减脂 · 从零开始的安全计划</h2>
       <p>胯宽臀丰多为遗传 + 久坐，无法「局部减脂」，但可全身减脂 + 紧致线条；肩颈不适需避开过顶负重与颈部受力的动作。本方案以「爬坡走」为主力有氧，帮你 3–6 个月逐步、可持续地瘦下来。</p>
     </div>
     <div class="hero-stats">
       <div><b>${last ? last.weight : '—'}</b><span>当前体重(斤)</span></div>
-      <div><b style="color:${lost > 0 ? '#b9f6ca' : '#fff'}">${lost ? (lost > 0 ? '−' : '+') + Math.abs(lost).toFixed(1) : '0'}</b><span>较起始变化</span></div>
+      <div><b style="color:${lost > 0 ? '#1f9d55' : 'var(--ink)'}">${lost ? (lost > 0 ? '−' : '+') + Math.abs(lost).toFixed(1) : '0'}</b><span>较起始变化</span></div>
       <div><b>${toGoal > 0 ? toGoal.toFixed(1) : '0'}</b><span>距目标(斤)</span></div>
     </div>
   </div>
