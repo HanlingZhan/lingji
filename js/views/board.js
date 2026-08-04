@@ -41,7 +41,7 @@ function rerender() {
     S().board.tasks.forEach(t => lines.push([S().board.cols[t.col].name, t.title, t.due || '', PRI[t.priority]?.t || '', t.done ? '已完成' : '进行中', (t.note || '').replace(/[\n,]/g, ' ')].map(x => `"${x}"`).join(',')));
     download('看板任务导出.csv', '\ufeff' + lines.join('\n'), 'text/csv');
   };
-  bindDnD();
+  bindDnD(); bindTouchDnD();
   host.onclick = e => {
     const c = e.target.closest('[data-chk]'); if (c) { toggle(c.dataset.chk); return; }
     const ed = e.target.closest('[data-open]'); if (ed) { openDetail(ed.dataset.open); return; }
@@ -185,6 +185,68 @@ function bindDnD() {
       store.patch('board.tasks', dragId, { col: col.dataset.col, order });
     }
     dragId = null; rerender();
+  });
+}
+
+// ---- 触摸拖拽：触屏长按进入拖拽（HTML5 DnD 在手机上不生效） ----
+function bindTouchDnD() {
+  const board = $('#board'); if (!board) return;
+  board.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse') return;            // 桌面仍用 HTML5 DnD
+    const task = e.target.closest('[data-task]'); if (!task) return;
+    const pid = task.dataset.task, sx = e.clientX, sy = e.clientY;
+    let timer = null, started = false, clone = null, offX = 0, offY = 0;
+    const begin = () => {
+      started = true;
+      const r = task.getBoundingClientRect();
+      offX = sx - r.left; offY = sy - r.top;
+      task.classList.add('dragging');
+      clone = task.cloneNode(true);
+      clone.style.cssText = `position:fixed;width:${r.width}px;z-index:999;pointer-events:none;opacity:.92;left:${r.left}px;top:${r.top}px`;
+      clone.classList.add('dragging');
+      document.body.appendChild(clone);
+    };
+    const up = ev => {
+      clearTimeout(timer);
+      board.removeEventListener('pointermove', move);
+      board.removeEventListener('pointerup', up);
+      board.removeEventListener('pointercancel', up);
+      if (!started) return;                          // 短按未触发拖拽 → 走原 click 打开详情
+      $$('.board-col').forEach(c => c.classList.remove('over'));
+      if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
+      board.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); }, { capture: true, once: true }); // 抑制拖完后的误触 click
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const col = el && el.closest('.board-col');
+      if (col) {
+        const target = el.closest('[data-task]');
+        const list = S().board.tasks.filter(t => t.col === col.dataset.col && !t.done).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        let order = Date.now();
+        if (target && target.dataset.task !== pid) {
+          const ti = list.findIndex(x => x.id === target.dataset.task);
+          const prev = list[ti - 1]?.order ?? (list[ti]?.order ?? 0) - 1000;
+          order = ((list[ti]?.order ?? 0) + prev) / 2;
+        }
+        store.patch('board.tasks', pid, { col: col.dataset.col, order });
+      }
+      rerender();
+    };
+    const move = ev => {
+      if (!started) {
+        if (Math.hypot(ev.clientX - sx, ev.clientY - sy) > 8) { clearTimeout(timer); cleanup(); }
+        return;
+      }
+      ev.preventDefault();
+      clone.style.left = (ev.clientX - offX) + 'px';
+      clone.style.top = (ev.clientY - offY) + 'px';
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const col = el && el.closest('.board-col');
+      $$('.board-col').forEach(c => c.classList.toggle('over', c === col));
+    };
+    const cleanup = () => { board.removeEventListener('pointermove', move); board.removeEventListener('pointerup', up); board.removeEventListener('pointercancel', up); };
+    timer = setTimeout(begin, 180);
+    board.addEventListener('pointermove', move, { passive: false });
+    board.addEventListener('pointerup', up);
+    board.addEventListener('pointercancel', up);
   });
 }
 

@@ -222,6 +222,79 @@ function cycleSettings() {
   });
 }
 
+// ---------- 人物卡片（3D 立体小人 + 标签环绕） ----------
+function avatarSVG(p) {
+  const u = ((p && p.id) || 'x').replace(/[^a-z0-9]/gi, '') || 'x';
+  const g = p && p.gender;
+  const skin = '#ffd9b8';
+  const hair = g === '女' ? '#6b3f2a' : g === '男' ? '#23252b' : '#4a4f5a';
+  const top1 = g === '女' ? '#ff9ec0' : g === '男' ? '#4f8cff' : '#8a93a6';
+  const top2 = g === '女' ? '#ff5e8a' : g === '男' ? '#2563eb' : '#5b6478';
+  const hairFront = g === '女'
+    ? `<path d="M34 70 C28 34 112 34 106 70 C108 92 98 104 94 104 L94 60 C94 42 84 36 70 36 C56 36 46 42 46 60 L46 104 C42 104 32 92 34 70 Z" fill="${hair}"/>`
+    : `<path d="M40 58 C40 32 100 32 100 58 C100 46 88 38 70 38 C52 38 40 46 40 58 Z" fill="${hair}"/><path d="M40 58 C36 60 34 70 36 80 C40 74 42 66 42 58 Z" fill="${hair}"/><path d="M100 58 C104 60 106 70 104 80 C100 74 98 66 98 58 Z" fill="${hair}"/>`;
+  return `<div class="pc-avatar"><svg class="pc-avatar-svg" viewBox="0 0 140 160" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bg${u}" cx="50%" cy="36%" r="62%"><stop offset="0%" stop-color="#ffffff" stop-opacity=".95"/><stop offset="100%" stop-color="#dbe7ff" stop-opacity="0"/></radialGradient>
+      <linearGradient id="top${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${top1}"/><stop offset="100%" stop-color="${top2}"/></linearGradient>
+      <radialGradient id="sk${u}" cx="40%" cy="32%" r="72%"><stop offset="0%" stop-color="#ffe9d6"/><stop offset="100%" stop-color="${skin}"/></radialGradient>
+    </defs>
+    <ellipse cx="70" cy="60" rx="62" ry="66" fill="url(#bg${u})"/>
+    <path d="M20 162 C22 120 44 102 70 102 C96 102 118 120 120 162 Z" fill="url(#top${u})"/>
+    <rect x="60" y="84" width="20" height="24" rx="9" fill="${skin}"/>
+    <circle cx="70" cy="58" r="30" fill="url(#sk${u})"/>
+    ${hairFront}
+    <circle cx="60" cy="58" r="3.3" fill="#3a2b22"/><circle cx="80" cy="58" r="3.3" fill="#3a2b22"/>
+    <path d="M61 72 Q70 80 79 72" stroke="#c0556b" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <circle cx="54" cy="66" r="3" fill="#ff9aa8" opacity=".5"/><circle cx="86" cy="66" r="3" fill="#ff9aa8" opacity=".5"/>
+  </svg></div>`;
+}
+function personCard(p, i) {
+  const all = [...new Set([...(p.interests || []), ...(p.style || [])])];
+  const orbitTags = all.slice(0, 14);
+  const orbit = orbitTags.map((t, k) => {
+    const a = (k * 360 / Math.max(1, orbitTags.length)).toFixed(1);
+    return `<span class="orbit-tag" style="--a:${a}deg" data-rm="${esc(t)}" title="点击移除：${esc(t)}"><span class="orbit-tag-inner">${esc(t)}</span></span>`;
+  }).join('');
+  const tags = all.map(t => `<span class="pc-tag">${esc(t)}<span class="pc-x" data-rm="${esc(t)}">×</span></span>`).join('');
+  return `<div class="person-card" data-pid="${p.id}" style="--d:${((i || 0) * 0.06).toFixed(2)}s">
+    <div class="pc-top">
+      <div class="pc-avatar-stage">${avatarSVG(p)}
+        <div class="pc-orbit">${orbit}</div>
+      </div>
+      <div class="pc-info">
+        <div class="pc-name">${esc(p.name)}${p.relation ? ` <span class="chip gray">${esc(p.relation)}</span>` : ''}${p.gender ? ` <span class="gender-ico" title="性别">${p.gender === '女' ? '♀' : '♂'}</span>` : ''}</div>
+        <div class="pc-meta">${[p.occupation, p.age ? p.age + ' 岁' : ''].filter(Boolean).join(' · ') || '暂无更多信息'}</div>
+        <div class="pc-tags">${tags || '<span class="small muted">未设置标签</span>'}</div>
+      </div>
+    </div>
+    <div class="pc-actions">
+      <button class="btn sm" data-rec="${p.id}">🎁 推荐</button>
+      <button class="btn sm" data-edp="${p.id}">编辑</button>
+    </div>
+  </div>`;
+}
+function removeTag(pid, tag) {
+  const p = S().people.find(x => x.id === pid); if (!p) return;
+  store.patch('people', pid, {
+    interests: (p.interests || []).filter(t => t !== tag),
+    style: (p.style || []).filter(t => t !== tag)
+  });
+  toast('已移除标签：' + tag, 'ok'); rerender();
+}
+function bindAvatarTilt() {
+  $$('.pc-avatar-stage').forEach(stage => {
+    const av = stage.querySelector('.pc-avatar'); if (!av) return;
+    stage.addEventListener('pointermove', e => {
+      const r = stage.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      av.style.setProperty('--rx', ((x - 0.5) * 22).toFixed(1) + 'deg');
+      av.style.setProperty('--ry', (-(y - 0.5) * 22).toFixed(1) + 'deg');
+    });
+    stage.addEventListener('pointerleave', () => { av.style.setProperty('--rx', '0deg'); av.style.setProperty('--ry', '0deg'); });
+  });
+}
+
 // ---------- 礼物推荐 ----------
 function drawGift() {
   const st = S();
@@ -230,16 +303,7 @@ function drawGift() {
   $('#aBody').innerHTML = `
   <div class="grid" style="grid-template-columns:320px 1fr">
     <div class="card"><div class="card-head"><h3>👤 人物档案</h3></div><div class="card-body">
-      ${st.people.length ? st.people.map(p => `
-        <div class="list-item"><div style="flex:1">
-          <div class="t">${esc(p.name)} <span class="chip gray">${esc(p.relation || '')}</span>${p.occupation ? ` <span class="chip gray">${esc(p.occupation)}</span>` : ''}${p.age ? ` <span class="chip gray">${p.age} 岁</span>` : ''}</div>
-          <div class="s">${(p.interests || []).map(t => `<span class="chip">${esc(t)}</span>`).join(' ')}</div>
-          ${(p.style && p.style.length) ? `<div class="s">风格：${p.style.map(t => `<span class="chip">${esc(t)}</span>`).join(' ')}</div>` : ''}
-          <div class="s">预算 ¥${p.budgetLo}-${p.budgetHi}${p.sizes ? ' · 尺码 ' + esc(p.sizes) : ''}</div>
-          ${p.taboo?.length ? `<div class="s" style="color:var(--danger)">禁忌：${p.taboo.map(esc).join('、')}</div>` : ''}
-        </div><div style="display:flex;flex-direction:column;gap:4px">
-          <button class="btn sm" data-rec="${p.id}">推荐</button><button class="btn sm" data-edp="${p.id}">编辑</button></div>
-        </div>`).join('') : emptyBox('先录入本人与对象的偏好标签', '👤')}
+      ${st.people.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">${st.people.map((p, i) => personCard(p, i)).join('')}</div>` : emptyBox('先录入本人与对象的偏好标签', '👤')}
     </div></div>
     <div class="card"><div class="card-head"><h3>🎁 推荐清单</h3><div class="actions"><span class="small muted">按匹配度排序</span></div></div>
       <div class="card-body" id="giftList">${emptyBox('点击右上角「生成礼物清单」或对某个人物点「推荐」', '🎁')}</div>
@@ -266,6 +330,8 @@ function drawGift() {
     runRecommend(null, p);
   };
   $('#aBody').onclick = e => {
+    const rm = e.target.closest('[data-rm]');
+    if (rm) { const card = e.target.closest('.person-card'); if (card) return removeTag(card.dataset.pid, rm.dataset.rm); }
     const r = e.target.closest('[data-rec]'); if (r) return runRecommend(null, S().people.find(p => p.id === r.dataset.rec));
     const ed = e.target.closest('[data-edp]'); if (ed) return personForm(S().people.find(p => p.id === ed.dataset.edp));
     const b = e.target.closest('[data-bought]'); if (b) { const g = S().gifts.find(x => x.id === b.dataset.bought); store.patch('gifts', g.id, { bought: !g.bought }); return rerender(); }
@@ -281,6 +347,7 @@ function drawGift() {
       toast('已收藏', 'ok'); rerender();
     }
   };
+  bindAvatarTilt();
 }
 
 function runRecommend(anni = null, person = null) {
@@ -339,6 +406,7 @@ function personForm(rec = null) {
     title: rec ? '编辑人物档案' : '新建人物档案', wide: true,
     fields: [
       { key: 'name', label: '称呼', required: true, value: rec?.name || '' },
+      { key: 'gender', label: '性别', type: 'select', value: rec?.gender || '', options: [{ v: '', t: '不填' }, { v: '男', t: '男' }, { v: '女', t: '女' }] },
       { key: 'relation', label: '关系', type: 'select', value: rec?.relation || '对象', options: ['对象', '本人', '家人', '朋友', '导师'].map(v => ({ v, t: v })) },
       { key: 'occupation', label: '职业（选填，可留空）', value: rec?.occupation || '', placeholder: '如：博士在读 / 设计师 / 教师' },
       { key: 'age', label: '年龄（选填，可留空）', type: 'number', value: rec?.age ?? '', min: 1, max: 120, placeholder: '如：24' },
