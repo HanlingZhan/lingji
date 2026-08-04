@@ -173,9 +173,11 @@ function monthHTML(c) {
     const cs = coursesOn(d);
     html += `<div class="cal-cell ${out ? 'out' : ''} ${isSameDay(d, new Date()) ? 'today' : ''} ${isSameDay(d, selected) ? 'sel' : ''}" data-date="${ymd(d)}">
       <span class="dnum">${d.getDate()}</span>
-      ${evs.slice(0, 3).map(evChip).join('')}
-      ${cs.slice(0, 2).map(x => `<div class="cal-ev course">📚 ${esc(x.name)}</div>`).join('')}
-      ${evs.length > 3 ? `<div class="small muted">+${evs.length - 3} 项</div>` : ''}
+      <div class="cal-marks">
+        ${evs.slice(0, 3).map(evChip).join('')}
+        ${cs.slice(0, 2).map(x => `<div class="cal-ev course">📚 ${esc(x.name)}</div>`).join('')}
+        ${evs.length > 3 ? `<div class="small muted">+${evs.length - 3} 项</div>` : ''}
+      </div>
     </div>`;
   }
   return html + '</div>';

@@ -254,6 +254,8 @@ input[type=checkbox],input[type=radio]{accent-color:var(--primary);width:15px;he
 .cal-cell.out{background:var(--card-2);color:var(--muted);opacity:.6}
 .cal-cell.today .dnum{background:var(--blue-600);color:#fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center}
 .cal-cell.sel{box-shadow:inset 0 0 0 2px var(--blue-400)}
+/* 事件包裹层：桌面端透明（不影响原有布局），手机端变成圆点行 */
+.cal-marks{display:contents}
 .dnum{font-size:12.5px;font-weight:600;margin-bottom:4px;display:inline-block}
 .cal-ev{font-size:11px;padding:2px 5px;border-radius:5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--blue-100);color:var(--blue-700);border-left:3px solid var(--blue-500)}
 .cal-ev.sci{background:var(--purple-bg);color:var(--purple);border-color:var(--purple)}
@@ -375,8 +377,9 @@ table.tt td:first-child,table.tt th:first-child{width:66px;text-align:center;bac
   body.drawer-open .tabbar{display:none}
   body.drawer-open .fab,body.drawer-open .fab-sheet{display:none}
   .sidebar-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
-  .view{padding:14px 13px 84px}
-  .topbar{padding:9px 12px;gap:9px}
+  .view{padding:12px 13px 88px}
+  /* 顶栏左右内缩与下方内容对齐（原来 margin 28px 比内容窄 30px） */
+  .topbar{padding:9px 12px;gap:9px;margin:12px 13px 0}
   .topbar-title h1{font-size:16px} .topbar-title p{display:none}
   .primary-btn{padding:7px 11px;font-size:12.5px}
   .hero{padding:16px;border-radius:var(--radius)}
@@ -423,10 +426,11 @@ table.tt td:first-child,table.tt th:first-child{width:66px;text-align:center;bac
   .fab-sheet{display:flex;flex-direction:column;gap:4px;position:fixed;right:16px;bottom:calc(140px + env(safe-area-inset-bottom));z-index:80;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:6px;box-shadow:var(--shadow-lg);width:152px}
   .fab-sheet button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;padding:11px 12px;border-radius:10px;cursor:pointer;font-size:13.5px;color:var(--ink)}
   .fab-sheet button:active{background:var(--blue-050)}
-  /* 底部导航更精致 */
-  .tabbar{box-shadow:0 -2px 16px rgba(16,42,80,.10)}
-  .tabbar button{font-size:11px}
-  .tabbar button .ico{font-size:20px}
+  /* 底部导航：手机上纯图标 + active 显示小标签，4 入口必排下 */
+  .tabbar{box-shadow:0 -2px 16px rgba(16,42,80,.10);display:flex;justify-content:space-around;gap:0;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  .tabbar button{flex:none;width:25%;min-width:0;font-size:0;gap:0;padding:7px 0}
+  .tabbar button .ico{font-size:22px}
+  .tabbar button.active{font-size:9px;gap:2px}
   .stat b{font-size:19px}
   /* 移动端 toast 抬到底部导航上方，宽度撑满 */
   .toast-wrap{left:16px;right:16px;bottom:calc(86px + env(safe-area-inset-bottom));align-items:stretch}
@@ -451,6 +455,89 @@ table.tt td:first-child,table.tt th:first-child{width:66px;text-align:center;bac
   /* 顶部「快速新建」在手机上只保留加号，省空间 */
   #quickAddBtn .qa-txt{display:none}
   #quickAddBtn{padding:7px 13px;font-size:17px;line-height:1}
+
+  /* ============================================================
+     手机端专属版式（Round 30）
+     目标：任何页面都不出现横向滑动，单列瀑布流，触控友好
+     ============================================================ */
+
+  /* 1) 彻底禁止横向滚动 —— 页面级兜底 */
+  html,body{overflow-x:hidden}
+  #app{max-width:100vw}
+  .main{min-width:0;max-width:100vw}
+  .view{min-width:0;overflow-x:clip}
+
+  /* 2) 视图内所有「内联多列栅格」一律压成单列。
+        各视图用的是 style="grid-template-columns:…"，内联样式必须 !important 才能覆盖。
+        弹窗内的栅格不动（「全部功能」九宫格需要保持多列）。 */
+  .view .grid[style*="grid-template-columns"]{grid-template-columns:1fr!important}
+  .view .grid{gap:12px}
+  .grid > *{min-width:0}
+  .card > *{min-width:0}
+  .row > *{min-width:0;max-width:100%}
+  .list-item{flex-wrap:wrap}
+
+  /* 3) 卡片密度收紧，同屏能看到更多内容 */
+  .card{padding:14px;border-radius:16px}
+  .card-head{padding:12px 14px;gap:8px}
+  .card-head h3{font-size:15px}
+  .card-head .actions{gap:5px}
+  .card-body{padding:13px 14px}
+  .sec-title{font-size:17px;margin:4px 0 10px}
+  .hero{margin-bottom:16px}
+
+  /* 4) 分段标签条（.seg）：撑满整行、自动折行，不再需要左右滑 */
+  .seg{display:flex;flex-wrap:wrap;width:100%;gap:4px;padding:4px;border-radius:14px}
+  .seg button{flex:1 1 auto;padding:9px 10px;font-size:12.5px;border-radius:10px;white-space:nowrap}
+  .seg button.active{box-shadow:0 1px 5px rgba(40,90,200,.16)}
+  /* 工具行整体改为纵向堆叠，避免按钮挤成一坨 */
+  .view > .row:first-child{gap:8px}
+  .view > .row:first-child .spacer{display:none}
+  .view > .row:first-child .primary-btn{flex:1 1 100%;justify-content:center;text-align:center}
+
+  /* 5) 日历：紧凑月历 + 事件圆点（替代会把 7 列撑到 773px 的文字块） */
+  .cal-grid{border-radius:14px}
+  .cal-head{font-size:10px;padding:6px 0}
+  .cal-cell{min-height:52px;min-width:0;padding:4px 1px;overflow:hidden;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .cal-cell .dnum{font-size:11.5px;margin-bottom:2px}
+  .cal-cell.today .dnum{width:19px;height:19px;font-size:11px}
+  .cal-marks{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:2.5px;width:100%;min-width:0}
+  .cal-marks .cal-ev{width:5px;height:5px;min-width:5px;flex:0 0 5px;padding:0;margin:0;border-radius:50%;border-left:0;font-size:0;line-height:0;overflow:hidden}
+  .cal-marks .cal-ev.done{opacity:.4}
+  .cal-marks .small.muted{display:none}
+  /* 日历工具栏：改成纵向堆叠，避免一行塞不下 */
+  .view-calendar > .row{gap:8px}
+  .view-calendar > .row .spacer{display:none}
+  .view-calendar > .row > .seg,.view-calendar > .row > #newRem{width:100%}
+  .view-calendar > .row > #newRem{justify-content:center;text-align:center}
+  .view-calendar > .row > .btn,.view-calendar > .row > #curLabel,.view-calendar > .row > #jumpDate{flex:0 0 auto}
+  .view-calendar > .row > #curLabel{font-size:13px;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .view-calendar > .row > #jumpDate{width:auto!important;flex:1 1 120px;min-width:120px}
+
+  /* 6) 课表：7 个星期标签一次排满，不用横滑 */
+  .tt-daytabs{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;overflow:visible;padding-bottom:0}
+  .tt-daytabs button{min-width:0;padding:6px 1px;border-radius:10px}
+  .tt-daytabs button .d{font-size:12px}
+  .tt-daytabs button .dt{font-size:9px;white-space:normal;line-height:1.2}
+
+  /* 7) 表格类内容给出受控横滑（而不是把整页撑宽） */
+  .tt-wrap,.table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  /* 8) 长文本/链接强制换行，避免单个长 URL 撑破卡片 */
+  .list-item .t,.list-item .s,.card-body p,.card-body a{overflow-wrap:anywhere;word-break:break-word}
+
+  /* 9) 输入控件占满宽度（多处内联写死了 width/max-width） */
+  .view input[type=text],.view input[type=date],.view input[type=number],
+  .view input[type=url],.view select,.view .input{max-width:100%!important}
+  .view .row > input,.view .row > select{flex:1 1 140px;min-width:0}
+
+  /* 10) 统计条：手机上两列，数字不至于太小 */
+  .stat-row{grid-template-columns:repeat(2,1fr)!important;gap:10px}
+  .stat{padding:11px 12px}
+
+  /* 11) 年视图两列即可 */
+  .year-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .mini-grid{font-size:9.5px}
 }
 /* ---------- 首页背景图片 ---------- */
 body.has-bg{background-size:cover;background-position:center;background-repeat:no-repeat;background-attachment:fixed}
@@ -516,6 +603,7 @@ html[data-theme="dark"] body.has-bg::after{background:rgba(7,18,38,var(--bg-mask
   .pc-avatar-wrap{align-self:center}
   .pc-avatar{width:92px;height:92px;font-size:36px}
   .pc-name{justify-content:center}
-  .pc-tags{justify-content:center}
+  /* 手机上标签改为自动折行：5 行多列在窄屏会变成左右横滑，很难点 */
+  .pc-tags{display:flex;flex-wrap:wrap;justify-content:center;overflow:visible;gap:6px}
   .pc-actions{flex-wrap:wrap}
 }

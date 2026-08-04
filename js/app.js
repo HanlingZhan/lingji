@@ -22,8 +22,8 @@ export const ROUTES = {
   calendar: { icon: '📅', name: '日历与提醒', sub: '日 / 周 / 月 / 年多视图 · 无限期远期提醒', mod: Calendar, group: '概览', tab: false },
   board: { icon: '🗂️', name: '事项看板', sub: '个人事务 · 课程任务 · 科研进度 · JK', mod: Board, group: '概览', tab: true },
   papers: { icon: '📄', name: '论文抓取', sub: 'arXiv / CVF / OpenReview / PwC / Scholar 定向聚合', mod: Papers, group: '科研', tab: false },
-  news: { icon: '📡', name: 'AI 前沿资讯', sub: '行业动态 · 顶会节点 · 开源项目', mod: News, group: '科研', tab: true },
-  schedule: { icon: '📚', name: '课程表', sub: '按周次录入 · Excel 批量导入 · 冲突检测', mod: Schedule, group: '学习' },
+  news: { icon: '📡', name: 'AI 前沿资讯', sub: '行业动态 · 顶会节点 · 开源项目', mod: News, group: '科研', tab: false },
+  schedule: { icon: '📚', name: '课程表', sub: '按周次录入 · Excel 批量导入 · 冲突检测', mod: Schedule, group: '学习', tab: true },
   jobs: { icon: '💼', name: '招聘资讯', sub: '日常大厂实习 · 2029 校招 · 我的追踪', mod: Jobs, group: '学习' },
   words: { icon: '🔤', name: '单词巧记', sub: '六级 / 雅思 / 托福 · 艾宾浩斯复习', mod: Words, group: '学习' },
   anniversary: { icon: '💝', name: '纪念日与礼物', sub: '倒计时 · 生理周期 · 智能礼物推荐', mod: Anniversary, group: '生活', tab: false },
@@ -68,7 +68,7 @@ export function go(route, params = {}) {
   $('#pageSub').textContent = r.sub;
   $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.route === route));
   $$('#tabbar button').forEach(b => b.classList.toggle('active', b.dataset.route === route));
-  const view = $('#view'); view.innerHTML = '';
+  const view = $('#view'); view.innerHTML = ''; view.className = 'view view-' + route;
   r.mod.render(view, params);
   view.scrollTop = 0; window.scrollTo(0, 0);
   closeDrawer();
