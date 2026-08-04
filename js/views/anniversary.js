@@ -222,65 +222,21 @@ function cycleSettings() {
   });
 }
 
-// ---------- 人物卡片（精致插画小人 + 标签环绕） ----------
-function avatarSVG(p) {
-  const u = ((p && p.id) || 'x').replace(/[^a-z0-9]/gi, '') || 'x';
+// ---------- 人物卡片（精致字母头像 + 标签芯片云） ----------
+function monogramAvatar(p) {
+  const name = (p && p.name) || '?';
+  const letter = [...name][0] || '?';
   const g = p && p.gender;
-  const isF = g === '女';
-  const skin = '#ffe1c4', skinHi = '#fff2e8', skinSh = '#f2bd95';
-  const hair = isF ? '#6e4327' : '#2a2e37';
-  const hairHi = isF ? '#8a5a39' : '#3d434f';
-  const cloth1 = isF ? '#ffa6c8' : '#6fa3ff';
-  const cloth2 = isF ? '#ff5e8f' : '#2f6bff';
-  const bgTint = isF ? '#ffd9e8' : '#d7e6ff';
-
-  // 发型路径
-  const backHair = isF
-    ? `M70 12 C95 12 113 30 110 58 C113 88 105 122 99 136 C97 140 91 138 90 131 C93 110 95 86 92 64 L48 64 C45 86 47 110 50 131 C49 138 43 140 41 136 C35 122 27 88 30 58 C27 30 45 12 70 12 Z`
-    : `M45 56 C45 31 57 23 70 23 C83 23 95 31 95 56 C95 45 83 39 70 39 C57 39 45 45 45 56 Z`;
-  const bangs = isF
-    ? `M42 52 C46 33 58 27 70 27 C82 27 94 33 98 52 C90 43 78 41 70 41 C62 41 50 43 42 52 Z`
-    : `M48 47 C52 36 60 31 70 31 C80 31 88 36 92 47 C84 40 76 38 70 38 C64 38 56 40 48 47 Z`;
-  const sideLocks = isF ? '' : `M45 56 C41 61 39 73 42 84 C46 75 47 64 47 56 Z M95 56 C99 61 101 73 98 84 C94 75 93 64 93 56 Z`;
-
-  return `<div class="pc-avatar"><svg class="pc-avatar-svg" viewBox="0 0 140 172" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <radialGradient id="bg${u}" cx="50%" cy="34%" r="60%"><stop offset="0%" stop-color="${bgTint}" stop-opacity=".9"/><stop offset="100%" stop-color="${bgTint}" stop-opacity="0"/></radialGradient>
-      <linearGradient id="top${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${cloth1}"/><stop offset="100%" stop-color="${cloth2}"/></linearGradient>
-      <radialGradient id="sk${u}" cx="42%" cy="34%" r="72%"><stop offset="0%" stop-color="${skinHi}"/><stop offset="55%" stop-color="${skin}"/><stop offset="100%" stop-color="${skinSh}"/></radialGradient>
-      <linearGradient id="hr${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${hairHi}"/><stop offset="100%" stop-color="${hair}"/></linearGradient>
-    </defs>
-    <ellipse cx="70" cy="62" rx="64" ry="68" fill="url(#bg${u})"/>
-    <ellipse cx="70" cy="166" rx="40" ry="5" fill="#1b2a4a" opacity=".08"/>
-    <path d="${backHair}" fill="url(#hr${u})"/>
-    <path d="M26 170 C26 136 42 120 70 120 C98 120 114 136 114 170 Z" fill="url(#top${u})"/>
-    <path d="M58 121 C64 130 76 130 82 121 C80 127 60 127 58 121 Z" fill="${cloth2}" opacity=".45"/>
-    <rect x="61" y="98" width="18" height="20" rx="8" fill="${skin}"/>
-    <circle cx="70" cy="60" r="31" fill="url(#sk${u})"/>
-    <path d="${bangs}" fill="url(#hr${u})"/>
-    ${sideLocks ? `<path d="${sideLocks}" fill="url(#hr${u})"/>` : ''}
-    <g fill="#33241b">
-      <ellipse cx="57" cy="61" rx="3.6" ry="4.6"/><ellipse cx="83" cy="61" rx="3.6" ry="4.6"/>
-    </g>
-    <g fill="#fff" opacity=".9"><circle cx="58.4" cy="59.2" r="1.4"/><circle cx="84.4" cy="59.2" r="1.4"/></g>
-    ${isF ? `<g fill="#ff8fa3" opacity=".5"><ellipse cx="49" cy="69" rx="5" ry="3"/><ellipse cx="91" cy="69" rx="5" ry="3"/></g>` : ''}
-    <path d="M63 74 Q70 80 77 74" stroke="#c2556c" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-  </svg></div>`;
+  const cls = g === '女' ? ' f' : g === '男' ? ' m' : '';
+  return `<div class="pc-avatar mono${cls}" aria-hidden="true"><span class="pc-mono-ring"></span><span class="pc-mono-glow"></span><span class="pc-mono-letter">${esc(letter)}</span></div>`;
 }
 function personCard(p, i) {
   const all = [...new Set([...(p.interests || []), ...(p.style || [])])];
-  const orbitTags = all.slice(0, 14);
-  const orbit = orbitTags.map((t, k) => {
-    const a = (k * 360 / Math.max(1, orbitTags.length)).toFixed(1);
-    return `<span class="orbit-tag" style="--a:${a}deg" data-rm="${esc(t)}" title="点击移除：${esc(t)}"><span class="orbit-tag-inner">${esc(t)}</span></span>`;
-  }).join('');
   const tags = all.map(t => `<span class="pc-tag">${esc(t)}<span class="pc-x" data-rm="${esc(t)}">×</span></span>`).join('');
   return `<div class="person-card" data-pid="${p.id}" style="--d:${((i || 0) * 0.06).toFixed(2)}s">
     <button class="pc-del" data-delp="${p.id}" title="删除该人物档案">🗑</button>
     <div class="pc-top">
-      <div class="pc-avatar-stage">${avatarSVG(p)}
-        <div class="pc-orbit">${orbit}</div>
-      </div>
+      <div class="pc-avatar-wrap">${monogramAvatar(p)}</div>
       <div class="pc-info">
         <div class="pc-name">${esc(p.name)}${p.relation ? ` <span class="chip gray">${esc(p.relation)}</span>` : ''}${p.gender ? ` <span class="pc-gender ${p.gender === '女' ? 'f' : 'm'}">${p.gender === '女' ? '♀ 女' : '♂ 男'}</span>` : ''}</div>
         <div class="pc-meta">${[p.occupation, p.age ? p.age + ' 岁' : ''].filter(Boolean).join(' · ') || '暂无更多信息'}</div>
@@ -301,18 +257,6 @@ function removeTag(pid, tag) {
     style: (p.style || []).filter(t => t !== tag)
   });
   toast('已移除标签：' + tag, 'ok'); rerender();
-}
-function bindAvatarTilt() {
-  $$('.pc-avatar-stage').forEach(stage => {
-    const av = stage.querySelector('.pc-avatar'); if (!av) return;
-    stage.addEventListener('pointermove', e => {
-      const r = stage.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
-      av.style.setProperty('--rx', ((x - 0.5) * 22).toFixed(1) + 'deg');
-      av.style.setProperty('--ry', (-(y - 0.5) * 22).toFixed(1) + 'deg');
-    });
-    stage.addEventListener('pointerleave', () => { av.style.setProperty('--rx', '0deg'); av.style.setProperty('--ry', '0deg'); });
-  });
 }
 
 // ---------- 礼物推荐 ----------
@@ -376,7 +320,6 @@ function drawGift() {
       toast('已收藏', 'ok'); rerender();
     }
   };
-  bindAvatarTilt();
 }
 
 function runRecommend(anni = null, person = null) {

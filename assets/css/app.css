@@ -410,20 +410,25 @@ html[data-theme="dark"] body.has-bg::after{background:rgba(7,18,38,.66)}
 @media print{ .sidebar,.topbar,.tabbar{display:none} }
 
 
-/* ============ 人物卡片 · 3D 立体小人 + 标签环绕 + 微交互 ============ */
+/* ============ 人物卡片 · 精致字母头像 + 标签芯片云 ============ */
 .person-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow);overflow:hidden;animation:pcPop .42s cubic-bezier(.2,.8,.25,1) both;animation-delay:var(--d,0s);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
 .person-card::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 50% -10%,rgba(37,99,235,.08),transparent 60%);pointer-events:none}
 .person-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:var(--blue-200)}
 .pc-top{display:flex;gap:16px;align-items:center}
-.pc-avatar-stage{position:relative;width:150px;height:150px;flex:0 0 150px;display:grid;place-items:center;perspective:700px;touch-action:none}
-.pc-avatar{width:120px;height:148px;transform:perspective(700px) rotateX(var(--ry,0deg)) rotateY(var(--rx,0deg));transform-style:preserve-3d;transition:transform .18s ease-out;will-change:transform;filter:drop-shadow(0 10px 14px rgba(20,40,90,.22))}
-.pc-avatar-svg{width:100%;height:100%;display:block}
-@media (hover:none){ .pc-avatar{animation:pcFloat 4.5s ease-in-out infinite} }
-.pc-orbit{position:absolute;inset:0;animation:pcSpin 32s linear infinite;transform-origin:center center;pointer-events:none}
-.pc-avatar-stage:hover .pc-orbit{animation-play-state:paused}
-.orbit-tag{position:absolute;left:50%;top:50%;pointer-events:auto;transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-1 * var(--R,72px))) rotate(calc(-1 * var(--a)))}
-.orbit-tag-inner{display:inline-block;animation:pcSpinRev 32s linear infinite;background:rgba(37,99,235,.10);border:1px solid var(--blue-200);color:var(--blue-700);font-size:11px;padding:3px 9px;border-radius:999px;white-space:nowrap;box-shadow:0 2px 6px rgba(37,99,235,.12);cursor:pointer;transition:transform .15s ease,background .15s ease,color .15s ease}
-.orbit-tag:hover .orbit-tag-inner{background:var(--blue-600);color:#fff;transform:scale(1.08)}
+.pc-avatar-wrap{flex:0 0 auto;display:grid;place-items:center}
+/* 精致字母头像：渐变水晶球 + 旋转光环 + 高光扫光 */
+.pc-avatar{position:relative;width:84px;height:84px;border-radius:50%;display:grid;place-items:center;overflow:hidden;color:#fff;font-weight:800;font-size:32px;letter-spacing:1px;
+  background:conic-gradient(from 150deg,#7c83ff,#3b82f6,#8b5cf6,#6f6bff,#7c83ff);
+  box-shadow:0 10px 22px rgba(59,90,200,.30),inset 0 2px 8px rgba(255,255,255,.40),inset 0 -6px 14px rgba(20,30,80,.22)}
+.pc-avatar::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(120% 95% at 30% 22%,rgba(255,255,255,.50),transparent 55%);pointer-events:none}
+.pc-mono-ring{position:absolute;inset:6px;border-radius:50%;border:1.5px solid rgba(255,255,255,.55);mix-blend-mode:overlay;animation:pcRing 14s linear infinite}
+.pc-mono-glow{position:absolute;inset:-45%;background:conic-gradient(from 0deg,transparent 0deg,rgba(255,255,255,.40) 38deg,transparent 92deg,transparent 360deg);animation:pcShine 6s linear infinite;opacity:.55}
+.pc-mono-letter{position:relative;z-index:2;text-shadow:0 2px 6px rgba(20,30,80,.40)}
+.pc-avatar.f{background:conic-gradient(from 150deg,#ff9ec2,#ff5e8f,#c06bff,#ff8fb1,#ff9ec2)}
+.pc-avatar.m{background:conic-gradient(from 150deg,#6fb0ff,#3b82f6,#22a3ff,#5b9dff,#6fb0ff)}
+.pc-avatar-wrap:hover .pc-avatar{transform:scale(1.05);transition:transform .2s ease}
+@keyframes pcRing{to{transform:rotate(360deg)}}
+@keyframes pcShine{to{transform:rotate(360deg)}}
 .pc-info{flex:1;min-width:0}
 .pc-name{font-weight:800;font-size:17px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .pc-name .chip{font-weight:600}
@@ -435,16 +440,13 @@ html[data-theme="dark"] body.has-bg::after{background:rgba(7,18,38,.66)}
 .pc-del:active{transform:scale(.92)}
 .pc-meta{margin-top:3px;color:var(--muted);font-size:13px}
 .pc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
-.pc-tag{display:inline-flex;align-items:center;gap:4px;background:var(--blue-050);border:1px solid var(--blue-100);color:var(--blue-700);font-size:12px;padding:3px 6px 3px 10px;border-radius:999px;animation:pcPop .3s both}
+.pc-tag{display:inline-flex;align-items:center;gap:4px;background:#eef5ff;border:1px solid #bcd6ff;color:#1e4bbb;font-size:12px;padding:3px 6px 3px 10px;border-radius:999px;animation:pcPop .3s both}
 .pc-x{width:16px;height:16px;display:grid;place-items:center;border-radius:50%;background:rgba(37,99,235,.14);color:var(--blue-700);font-size:12px;line-height:1;cursor:pointer;transition:transform .15s ease,background .15s ease,color .15s ease}
 .pc-x:hover{background:var(--danger);color:#fff;transform:scale(1.15)}
 .pc-actions{display:flex;gap:8px;margin-top:2px}
 .pc-actions .btn{flex:1;justify-content:center}
 
 @keyframes pcPop{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
-@keyframes pcSpin{to{transform:rotate(360deg)}}
-@keyframes pcSpinRev{to{transform:rotate(-360deg)}}
-@keyframes pcFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-7px) rotate(1.5deg)}}
 
 /* 微交互：按钮按压回弹 + 列表项悬停抬升 */
 .btn,.primary-btn,.btn.sm{transition:transform .12s ease,box-shadow .15s ease,background .15s ease}
@@ -458,8 +460,9 @@ html[data-theme="dark"] body.has-bg::after{background:rgba(7,18,38,.66)}
 
 @media (max-width:520px){
   .pc-top{flex-direction:column;text-align:center}
-  .pc-avatar-stage{width:132px;height:132px;flex-basis:132px}
-  .orbit-tag{--R:58px}
+  .pc-avatar-wrap{align-self:center}
+  .pc-avatar{width:92px;height:92px;font-size:36px}
   .pc-name{justify-content:center}
   .pc-tags{justify-content:center}
+  .pc-actions{flex-wrap:wrap}
 }
