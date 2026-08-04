@@ -416,7 +416,7 @@ html[data-theme="dark"] body.has-bg::after{background:rgba(7,18,38,.66)}
 .person-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:var(--blue-200)}
 .pc-top{display:flex;gap:16px;align-items:center}
 .pc-avatar-stage{position:relative;width:150px;height:150px;flex:0 0 150px;display:grid;place-items:center;perspective:700px;touch-action:none}
-.pc-avatar{width:118px;height:132px;transform:perspective(700px) rotateX(var(--ry,0deg)) rotateY(var(--rx,0deg));transform-style:preserve-3d;transition:transform .18s ease-out;will-change:transform;filter:drop-shadow(0 10px 14px rgba(20,40,90,.22))}
+.pc-avatar{width:120px;height:148px;transform:perspective(700px) rotateX(var(--ry,0deg)) rotateY(var(--rx,0deg));transform-style:preserve-3d;transition:transform .18s ease-out;will-change:transform;filter:drop-shadow(0 10px 14px rgba(20,40,90,.22))}
 .pc-avatar-svg{width:100%;height:100%;display:block}
 @media (hover:none){ .pc-avatar{animation:pcFloat 4.5s ease-in-out infinite} }
 .pc-orbit{position:absolute;inset:0;animation:pcSpin 32s linear infinite;transform-origin:center center;pointer-events:none}
@@ -427,7 +427,12 @@ html[data-theme="dark"] body.has-bg::after{background:rgba(7,18,38,.66)}
 .pc-info{flex:1;min-width:0}
 .pc-name{font-weight:800;font-size:17px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .pc-name .chip{font-weight:600}
-.gender-ico{font-size:15px;opacity:.85}
+.pc-gender{font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:3px}
+.pc-gender.f{background:#ffe1ee;color:#d6336c;border:1px solid #ffc2dd}
+.pc-gender.m{background:#dce8ff;color:#2f6bff;border:1px solid #bcd2ff}
+.pc-del{position:absolute;top:10px;right:10px;z-index:5;width:30px;height:30px;border:none;background:rgba(255,255,255,.7);border:1px solid var(--line);border-radius:50%;font-size:14px;line-height:1;cursor:pointer;display:grid;place-items:center;opacity:.65;transition:transform .15s ease,background .15s ease,opacity .15s ease,color .15s ease}
+.pc-del:hover{opacity:1;background:var(--danger);color:#fff;border-color:var(--danger);transform:scale(1.08)}
+.pc-del:active{transform:scale(.92)}
 .pc-meta{margin-top:3px;color:var(--muted);font-size:13px}
 .pc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 .pc-tag{display:inline-flex;align-items:center;gap:4px;background:var(--blue-050);border:1px solid var(--blue-100);color:var(--blue-700);font-size:12px;padding:3px 6px 3px 10px;border-radius:999px;animation:pcPop .3s both}
