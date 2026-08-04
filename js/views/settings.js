@@ -15,6 +15,18 @@ export function applyBg() {
   else { b.classList.remove('has-bg'); b.style.backgroundImage = ''; }
 }
 
+// 应用界面透明度：背景透明度（极光/背景图蒙版）+ 小块透明度（浮层玻璃），存于 settings.appearance
+export function applyAppearance() {
+  const a = (S().settings && S().settings.appearance) || {};
+  const root = document.documentElement.style;
+  const v = Math.max(0, Math.min(100, +a.bgOpacity || 50)) / 100;
+  const p = Math.max(30, Math.min(100, +a.panelOpacity || 85)) / 100;
+  root.setProperty('--aurora-op', v.toFixed(3));
+  root.setProperty('--bg-mask', (1 - v * 0.85).toFixed(3));
+  root.setProperty('--bg-mask-dark', (1 - v * 0.85).toFixed(3));
+  root.setProperty('--panel-alpha', p.toFixed(3));
+}
+
 function storageSize() {
   let n = 0; for (const k in localStorage) if (localStorage.hasOwnProperty(k)) n += (localStorage[k].length + k.length);
   return (n / 1024).toFixed(1);
@@ -23,6 +35,8 @@ function storageSize() {
 function rerender() {
   if (!host) return;
   const st = S(), sy = st.settings.sync, nt = st.settings.notify;
+  const ap = (st.settings.appearance) || {};
+  const bgOp = (+ap.bgOpacity || 50), pnOp = (+ap.panelOpacity || 85);
   host.innerHTML = `
   <div class="grid" style="grid-template-columns:1fr 1fr">
     <div class="card"><div class="card-head"><h3>👤 个人信息</h3></div><div class="card-body">
@@ -94,6 +108,14 @@ function rerender() {
         <button class="btn" id="clearBg">恢复默认</button>
       </div>
       <p class="small muted" style="margin-top:8px">背景上方会自动叠加一层半透明蒙版，保证卡片与文字清晰可读；切换深色模式时蒙版自动加深。</p>
+    </div></div>
+
+    <div class="card"><div class="card-head"><h3>🎨 界面透明度</h3></div><div class="card-body">
+      <label class="fld" style="margin-bottom:16px"><span>背景透明度 <b id="bgOpVal">${bgOp}%</b></span>
+        <input type="range" id="bgOp" min="0" max="100" value="${bgOp}"></label>
+      <label class="fld" style="margin-bottom:14px"><span>小块透明度 <b id="pnOpVal">${pnOp}%</b></span>
+        <input type="range" id="pnOp" min="30" max="100" value="${pnOp}"></label>
+      <p class="small muted">背景透明度控制极光背景的浓淡（使用自定义背景图时控制蒙版浓淡）；小块透明度控制侧边栏、顶栏与卡片等浮层的通透程度。拖动即时预览，松手自动保存。</p>
     </div></div>
 
     <div class="card"><div class="card-head"><h3>🔐 数据安全与备份</h3></div><div class="card-body">
@@ -256,6 +278,26 @@ function rerender() {
     store.update(s => { s.settings.bg = data; }); applyBg(); toast('已应用背景', 'ok'); rerender();
   };
   $('#clearBg').onclick = () => { store.update(s => { s.settings.bg = ''; }); applyBg(); toast('已恢复默认背景'); rerender(); };
+  // 界面透明度：拖动即时改 CSS 变量，松手才写库（避免频繁 rerender 打断拖动）
+  const bgOpEl = $('#bgOp'), pnOpEl = $('#pnOp');
+  if (bgOpEl && pnOpEl) {
+    const preview = () => {
+      $('#bgOpVal').textContent = bgOpEl.value + '%';
+      $('#pnOpVal').textContent = pnOpEl.value + '%';
+      const root = document.documentElement.style;
+      const v = Math.max(0, Math.min(100, +bgOpEl.value)) / 100;
+      const p = Math.max(30, Math.min(100, +pnOpEl.value)) / 100;
+      root.setProperty('--aurora-op', v.toFixed(3));
+      root.setProperty('--bg-mask', (1 - v * 0.85).toFixed(3));
+      root.setProperty('--bg-mask-dark', (1 - v * 0.85).toFixed(3));
+      root.setProperty('--panel-alpha', p.toFixed(3));
+    };
+    bgOpEl.oninput = preview;
+    pnOpEl.oninput = preview;
+    const saveOpacity = () => { store.update(s => { s.settings.appearance = { bgOpacity: +bgOpEl.value, panelOpacity: +pnOpEl.value }; }); toast('外观已保存', 'ok'); };
+    bgOpEl.onchange = saveOpacity;
+    pnOpEl.onchange = saveOpacity;
+  }
 }
 
 function notifPermText() {

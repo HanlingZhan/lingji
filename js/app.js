@@ -15,7 +15,7 @@ import * as Schedule from './views/schedule.js';
 import * as Fitness from './views/fitness.js';
 import * as Jobs from './views/jobs.js';
 import * as Settings from './views/settings.js';
-import { applyBg } from './views/settings.js';
+import { applyBg, applyAppearance } from './views/settings.js';
 
 export const ROUTES = {
   dashboard: { icon: '🏠', name: '工作台', sub: '你的一站式科研与生活中枢', mod: Dashboard, group: '概览', tab: true },
@@ -163,7 +163,7 @@ function bind() {
 }
 
 async function boot() {
-  renderNav(); bind(); applyTheme(); applyBg(); updateBadges(); updateSyncChip();
+  renderNav(); bind(); applyTheme(); applyBg(); applyAppearance(); updateBadges(); updateSyncChip();
   const start = location.hash.replace('#/', '') || 'dashboard';
   go(ROUTES[start] ? start : 'dashboard');
   // 通知调度
