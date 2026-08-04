@@ -107,12 +107,20 @@ export function fieldHTML(f) {
       const sug = (f.suggest || []).map(t => `<span class="tp-chip sug${tv.includes(t) ? ' active' : ''}" data-t="${esc(t)}">${esc(t)}</span>`).join('');
       const sel = tv.length ? tv.map(t => `<span class="tp-chip sel" data-t="${esc(t)}">${esc(t)}<span class="tp-x" data-t="${esc(t)}">×</span></span>`).join('') : '<span class="small muted">尚未选择</span>';
       inner = `<div class="tagpick" data-key="${f.key}">
-        <div class="tp-selected" data-sel>${sel}</div>
+        <div class="tp-block">
+          <div class="tp-h">已选标签</div>
+          <div class="tp-selected" data-sel>${sel}</div>
+        </div>
+        ${f.suggest && f.suggest.length ? `<div class="tp-block">
+          <div class="tp-h">推荐标签 · 点击添加</div>
+          <div class="tp-suggest" data-sug>${sug}</div>
+        </div>` : ''}
         <div class="tp-add"><input type="text" class="tp-input" placeholder="自定义标签，回车或点添加"><button type="button" class="tp-addbtn">+ 添加</button></div>
-        ${f.suggest && f.suggest.length ? `<div class="tp-suggest" data-sug>${sug}</div>` : ''}
         <input type="hidden" name="${f.key}" value="${esc(tv.join(','))}">
       </div>`; break;
     }
+    case 'section':
+      return `<div class="fld-section">${esc(f.label)}</div>`;
     default:
       inner = `<input type="${f.type || 'text'}" name="${f.key}" value="${esc(v)}" placeholder="${esc(f.placeholder || '')}"${f.min !== undefined ? ` min="${f.min}"` : ''}${f.max !== undefined ? ` max="${f.max}"` : ''}${f.step ? ` step="${f.step}"` : ''}>`;
   }
