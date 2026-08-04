@@ -100,22 +100,21 @@ function rerender() {
       </p>
     </div></div>
 
-    <div class="card"><div class="card-head"><h3>🖼️ 首页背景图片</h3></div><div class="card-body">
+    <div class="card"><div class="card-head"><h3>🖼️ 背景与透明度</h3></div><div class="card-body">
       <p class="small muted" style="margin-bottom:8px">上传一张图片作为应用背景，仅保存在本机浏览器（转为 DataURL，建议 ≤ 1.5MB）。</p>
-      <div class="row" style="gap:8px;flex-wrap:wrap">
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:14px">
         <input type="file" id="bgFile" accept="image/*">
         <button class="btn solid" id="saveBg">应用背景</button>
         <button class="btn" id="clearBg">恢复默认</button>
       </div>
-      <p class="small muted" style="margin-top:8px">背景上方会自动叠加一层半透明蒙版，保证卡片与文字清晰可读；切换深色模式时蒙版自动加深。</p>
-    </div></div>
-
-    <div class="card"><div class="card-head"><h3>🎨 界面透明度</h3></div><div class="card-body">
-      <label class="fld" style="margin-bottom:16px"><span>背景透明度 <b id="bgOpVal">${bgOp}%</b></span>
-        <input type="range" id="bgOp" min="0" max="100" value="${bgOp}"></label>
-      <label class="fld" style="margin-bottom:14px"><span>小块透明度 <b id="pnOpVal">${pnOp}%</b></span>
-        <input type="range" id="pnOp" min="30" max="100" value="${pnOp}"></label>
-      <p class="small muted">背景透明度控制极光背景的浓淡（使用自定义背景图时控制蒙版浓淡）；小块透明度控制侧边栏、顶栏与卡片等浮层的通透程度。拖动即时预览，松手自动保存。</p>
+      <p class="small muted" style="margin-top:0;margin-bottom:14px">背景上方会自动叠加一层半透明蒙版，保证卡片与文字清晰可读；切换深色模式时蒙版自动加深。</p>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:4px">
+        <label class="fld" style="margin:0"><span>背景透明度 <b id="bgOpVal">${bgOp}%</b></span>
+          <input type="range" id="bgOp" min="0" max="100" value="${bgOp}"></label>
+        <label class="fld" style="margin:0"><span>小块透明度 <b id="pnOpVal">${pnOp}%</b></span>
+          <input type="range" id="pnOp" min="30" max="100" value="${pnOp}"></label>
+      </div>
+      <p class="small muted" style="margin-top:12px">背景透明度控制极光背景的浓淡（使用自定义背景图时控制蒙版浓淡）；小块透明度控制侧边栏、顶栏与卡片等浮层的通透程度。拖动即时预览，松手自动保存。</p>
     </div></div>
 
     <div class="card"><div class="card-head"><h3>🔐 数据安全与备份</h3></div><div class="card-body">

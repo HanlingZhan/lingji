@@ -265,13 +265,11 @@ function drawGift() {
   $('#tabActions').innerHTML = `<button class="btn" id="addPerson">＋ 人物标签</button> <button class="primary-btn" id="genGift">✨ 生成礼物清单</button>`;
   const saved = st.gifts;
   $('#aBody').innerHTML = `
-  <div class="grid" style="grid-template-columns:320px 1fr">
-    <div class="card"><div class="card-head"><h3>👤 人物档案</h3></div><div class="card-body">
-      ${st.people.length ? `<div class="grid" style="grid-template-columns:1fr;gap:14px">${st.people.map((p, i) => personCard(p, i)).join('')}</div>` : emptyBox('先录入本人与对象的偏好标签', '👤')}
-    </div></div>
-    <div class="card"><div class="card-head"><h3>🎁 推荐清单</h3><div class="actions"><span class="small muted">按匹配度排序</span></div></div>
-      <div class="card-body" id="giftList">${emptyBox('点击右上角「生成礼物清单」或对某个人物点「推荐」', '🎁')}</div>
-    </div>
+  <div class="card"><div class="card-head"><h3>👤 人物档案</h3><span class="small muted">${st.people.length} 位</span></div><div class="card-body">
+    ${st.people.length ? `<div class="people-grid">${st.people.map((p, i) => personCard(p, i)).join('')}</div>` : emptyBox('先录入本人与对象的偏好标签', '👤')}
+  </div></div>
+  <div class="card" style="margin-top:16px"><div class="card-head"><h3>🎁 推荐清单</h3><div class="actions"><span class="small muted">按匹配度排序</span></div></div>
+    <div class="card-body" id="giftList">${emptyBox('点击右上角「生成礼物清单」或对某个人物点「推荐」', '🎁')}</div>
   </div>
   <div class="card" style="margin-top:16px"><div class="card-head"><h3>⭐ 我的收藏与购买记录</h3><span class="chip gray">${saved.length}</span></div>
     <div class="card-body"><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">

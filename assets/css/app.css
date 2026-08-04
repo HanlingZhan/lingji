@@ -466,6 +466,7 @@ html[data-theme="dark"] body.has-bg::after{background:rgba(7,18,38,var(--bg-mask
 .person-card{position:relative;background:rgba(var(--glass-rgb),var(--panel-alpha));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--sh);overflow:hidden;animation:pcPop .42s cubic-bezier(.2,.8,.25,1) both;animation-delay:var(--d,0s);transition:transform .25s var(--out),box-shadow .25s var(--out),border-color .25s var(--out)}
 .person-card::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 50% -10%,rgba(61,111,242,.10),transparent 60%);pointer-events:none}
 .person-card:hover{transform:translateY(-5px) rotate(-.3deg);box-shadow:var(--sh-lg);border-color:var(--primary-100)}
+.people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 .pc-top{display:flex;gap:16px;align-items:center}
 .pc-avatar-wrap{flex:0 0 auto;display:grid;place-items:center}
 /* 精致字母头像：渐变水晶球 + 旋转光环 + 高光扫光 */
