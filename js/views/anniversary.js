@@ -267,7 +267,7 @@ function drawGift() {
   $('#aBody').innerHTML = `
   <div class="grid" style="grid-template-columns:320px 1fr">
     <div class="card"><div class="card-head"><h3>👤 人物档案</h3></div><div class="card-body">
-      ${st.people.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">${st.people.map((p, i) => personCard(p, i)).join('')}</div>` : emptyBox('先录入本人与对象的偏好标签', '👤')}
+      ${st.people.length ? `<div class="grid" style="grid-template-columns:1fr;gap:14px">${st.people.map((p, i) => personCard(p, i)).join('')}</div>` : emptyBox('先录入本人与对象的偏好标签', '👤')}
     </div></div>
     <div class="card"><div class="card-head"><h3>🎁 推荐清单</h3><div class="actions"><span class="small muted">按匹配度排序</span></div></div>
       <div class="card-body" id="giftList">${emptyBox('点击右上角「生成礼物清单」或对某个人物点「推荐」', '🎁')}</div>
