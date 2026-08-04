@@ -128,7 +128,7 @@ a{color:var(--blue-600);text-decoration:none}
 .tp-chip.sug{background:var(--bg);color:var(--muted)}
 .tp-chip.sug.active{background:var(--blue-100);color:var(--blue-700);outline:2px solid var(--blue-400);outline-offset:1px}
 .tp-chip.sel{background:var(--blue-600);color:#fff}
-.tp-chip.sel .tp-x{background:rgba(255,255,255,.28);border:none;color:#fff;width:16px;height:16px;border-radius:50%;font-size:12px;line-height:1;cursor:pointer;padding:0;margin-left:2px}
+.tp-chip.sel .tp-x{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:rgba(255,255,255,.28);border:none;color:#fff;width:16px;height:16px;border-radius:50%;font-size:12px;line-height:1;cursor:pointer;padding:0;margin-left:2px}
 .tp-add{display:flex;gap:6px}
 .tp-add input{flex:1;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card-2);font-size:12.5px;color:var(--ink)}
 .tp-addbtn{background:var(--blue-600);color:#fff;border:none;border-radius:8px;padding:0 12px;cursor:pointer;font-size:12.5px;white-space:nowrap}
@@ -344,7 +344,25 @@ table.tt td:first-child,table.tt th:first-child{width:66px;text-align:center;bac
   .week-grid{grid-template-columns:1fr;gap:8px}
   .week-col{min-height:auto}
   .notif-panel{right:8px;left:8px;width:auto;top:56px}
-  .modal{max-height:92vh;border-radius:16px}
+  .modal{max-height:94vh;border-radius:18px}
+  /* 手机端弹窗改为底部抽屉，贴合单手操作 */
+  .modal-mask{padding:0;place-items:end center;align-items:end;justify-items:center}
+  .modal{width:100%;max-height:94vh;border-radius:20px 20px 0 0;margin:0;animation:sheetIn .26s}
+  @keyframes sheetIn{from{transform:translateY(100%)}}
+  .modal-head{padding:16px 16px;border-bottom:1px solid var(--line)}
+  .modal-body{padding:16px;padding-bottom:8px}
+  .modal-foot{flex-direction:column;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+  .modal-foot .btn{width:100%;padding:13px;font-size:15px}
+  /* 表单与标签点选加大点按区域 */
+  label.fld{font-size:14px;gap:7px}
+  input[type=text],input[type=number],input[type=date],input[type=time],input[type=datetime-local],input[type=url],select,textarea{padding:12px 12px;font-size:15px}
+  textarea{min-height:96px}
+  .btn{padding:11px 14px;font-size:14px}
+  .tp-chip{padding:8px 14px;font-size:13.5px;border-radius:20px}
+  .tp-chip.sel .tp-x{width:18px;height:18px;font-size:13px;margin-left:3px}
+  .tp-add input{padding:11px;font-size:14.5px}
+  .tp-addbtn{padding:0 16px;font-size:14.5px}
+  .tp-suggest{max-height:150px}
   .tabbar{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);z-index:70;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
   .tabbar button{flex:1;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--muted);padding:4px 0;cursor:pointer}
   .tabbar button .ico{font-size:18px}
