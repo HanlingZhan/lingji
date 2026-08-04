@@ -57,7 +57,10 @@ export function formModal({ title, fields, submitText = '保存', wide = false, 
       };
       ok.onclick = submit;
       // 标签点选组件（兴趣 / 风格 / 自定义添加）
-      body.addEventListener('click', e => {
+      // ⚠️ 必须挂在每次打开都会重建的 .form-grid 上，不能挂 #modalBody（持久元素），
+      // 否则每打开一次表单就叠加一个监听器，第 2 次起点击被"加完又删"互相抵消 → 标签点不动。
+      const grid = body.querySelector('.form-grid');
+      grid.addEventListener('click', e => {
         const pk = e.target.closest('.tagpick'); if (!pk) return;
         const hidden = pk.querySelector('input[type=hidden]');
         const selBox = pk.querySelector('[data-sel]');
@@ -69,7 +72,7 @@ export function formModal({ title, fields, submitText = '保存', wide = false, 
         if (chip) { const t = chip.dataset.t; const cur = tpGet(hidden); tpSet(hidden, selBox, sugBox, cur.includes(t) ? cur.filter(s => s !== t) : [...cur, t]); return; }
         if (e.target.closest('.tp-addbtn')) { const val = input.value.trim(); if (val) { const cur = tpGet(hidden); if (!cur.includes(val)) tpSet(hidden, selBox, sugBox, [...cur, val]); input.value = ''; } return; }
       });
-      body.addEventListener('keydown', e => {
+      grid.addEventListener('keydown', e => {
         if (e.key !== 'Enter') return;
         const input = e.target.closest && e.target.closest('.tp-input'); if (!input) return;
         e.preventDefault(); e.stopImmediatePropagation();
@@ -80,7 +83,7 @@ export function formModal({ title, fields, submitText = '保存', wide = false, 
         const val = input.value.trim();
         if (val) { const cur = tpGet(hidden); if (!cur.includes(val)) tpSet(hidden, selBox, sugBox, [...cur, val]); input.value = ''; }
       }, true);
-      body.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.ctrlKey !== undefined && e.target.tagName === 'INPUT') submit(); });
+      grid.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.ctrlKey !== undefined && e.target.tagName === 'INPUT') submit(); });
       const first = body.querySelector('input,select,textarea'); first && first.focus();
     }
   });
