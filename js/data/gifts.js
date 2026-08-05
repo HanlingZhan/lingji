@@ -117,8 +117,102 @@ export const GIFT_DB = [
   { n: '乐高 / 拼装模型（建筑 / 花艺系列）', cat: '文创', lo: 200, hi: 1500, tags: ['手作', '治愈', '童趣', '高级感', '经典'], occ: ['生日', '周末'], why: '拼完还能当摆件，沉浸解压' }
 ];
 
+// ---------- 标签元数据（图标 + 柔和主题色） ----------
+// 颜色族采用低饱和 pastel，选中态统一用主色反白，保证多彩但不刺眼。
+const TAG_META = {
+  // 浪漫 / 温柔
+  浪漫: { icon: '🌹', color: 'rose' },
+  优雅: { icon: '🦢', color: 'rose' },
+  法式: { icon: '🥐', color: 'rose' },
+  温柔: { icon: '🍵', color: 'rose' },
+  性感: { icon: '💋', color: 'rose' },
+  淑女: { icon: '👒', color: 'rose' },
+  美妆: { icon: '💄', color: 'rose' },
+  // 甜美 / 可爱
+  甜美: { icon: '🍬', color: 'pink' },
+  可爱: { icon: '🐰', color: 'pink' },
+  萌系: { icon: '🎀', color: 'pink' },
+  韩系: { icon: '🇰🇷', color: 'pink' },
+  // 文艺 / 创作
+  文艺: { icon: '📜', color: 'amber' },
+  阅读: { icon: '📖', color: 'amber' },
+  摄影: { icon: '📷', color: 'amber' },
+  咖啡: { icon: '☕', color: 'amber' },
+  复古: { icon: '📻', color: 'amber' },
+  复古港风: { icon: '🎞️', color: 'amber' },
+  经典: { icon: '📯', color: 'amber' },
+  // 学术 / 知性
+  学术: { icon: '🎓', color: 'indigo' },
+  学院风: { icon: '🎒', color: 'indigo' },
+  游戏: { icon: '🎮', color: 'indigo' },
+  未来感: { icon: '🚀', color: 'indigo' },
+  // 音乐 / 影音 / 梦幻
+  音乐: { icon: '🎵', color: 'violet' },
+  影音: { icon: '🎬', color: 'violet' },
+  潮流: { icon: '👟', color: 'violet' },
+  二次元: { icon: '✨', color: 'violet' },
+  JK: { icon: '🎒', color: 'violet' },
+  // 时尚
+  时尚: { icon: '👗', color: 'fuchsia' },
+  // 科技 / 数码 / 职场
+  科技: { icon: '💻', color: 'blue' },
+  科技感: { icon: '⚡', color: 'blue' },
+  极客: { icon: '🤓', color: 'blue' },
+  商务: { icon: '💼', color: 'blue' },
+  职场: { icon: '👔', color: 'blue' },
+  定制: { icon: '🔖', color: 'blue' },
+  数码: { icon: '📱', color: 'sky' },
+  日系: { icon: '🇯🇵', color: 'sky' },
+  帅气: { icon: '🧢', color: 'sky' },
+  // 自然 / 户外 / 健康
+  旅行: { icon: '✈️', color: 'teal' },
+  治愈: { icon: '🕯️', color: 'teal' },
+  健身: { icon: '💪', color: 'emerald' },
+  健康: { icon: '🍎', color: 'emerald' },
+  清新: { icon: '🍃', color: 'emerald' },
+  户外: { icon: '⛺', color: 'green' },
+  自然: { icon: '🌿', color: 'green' },
+  田园: { icon: '🌻', color: 'green' },
+  运动风: { icon: '⚽', color: 'green' },
+  // 居家 / 生活
+  居家: { icon: '🏠', color: 'stone' },
+  慵懒: { icon: '🛋️', color: 'stone' },
+  手作: { icon: '✂️', color: 'orange' },
+  街头: { icon: '🛹', color: 'orange' },
+  搞怪: { icon: '🤪', color: 'orange' },
+  体验: { icon: '🎫', color: 'orange' },
+  美食: { icon: '🍰', color: 'orange' },
+  波西米亚: { icon: '🌾', color: 'orange' },
+  宠物: { icon: '🐾', color: 'amber' },
+  童趣: { icon: '🧸', color: 'yellow' },
+  // 小众 / 香氛 / 梦幻
+  小众: { icon: '🪞', color: 'purple' },
+  香氛: { icon: '🌸', color: 'purple' },
+  梦幻: { icon: '🔮', color: 'purple' },
+  // 轻奢 / 华丽
+  轻奢: { icon: '🥂', color: 'amber' },
+  奢华: { icon: '👑', color: 'amber' },
+  华丽: { icon: '💠', color: 'amber' },
+  高级感: { icon: '💎', color: 'zinc' },
+  酷飒: { icon: '🕶️', color: 'zinc' },
+  暗黑: { icon: '🌑', color: 'zinc' },
+  硬核: { icon: '🛡️', color: 'zinc' },
+  简约: { icon: '➖', color: 'slate' },
+  干练: { icon: '✔️', color: 'slate' },
+  机能: { icon: '🦾', color: 'slate' },
+  高冷: { icon: '❄️', color: 'slate' },
+  极简: { icon: '▫️', color: 'gray' },
+  中性: { icon: '⚖️', color: 'gray' },
+  国风: { icon: '🏮', color: 'red' },
+  汉服: { icon: '🎐', color: 'red' },
+  低预算: { icon: '🪙', color: 'lime' },
+  实用: { icon: '🧰', color: 'lime' }
+};
+
+function tagList(arr) { return arr.map(t => ({ t, ...(TAG_META[t] || { icon: '', color: '' }) })); }
+
 // 兴趣偏好标签（人物档案「兴趣偏好」建议词）
-export const INTEREST_TAGS = ['浪漫', '文艺', '二次元', 'JK', '甜美', '简约', '优雅', '时尚', '科技', '数码', '摄影', '阅读', '学术', '咖啡', '手作', '旅行', '健身', '健康', '美妆', '香氛', '居家', '治愈', '音乐', '体验', '定制', '低预算', '美食', '游戏', '户外', '宠物', '影音'];
+export const INTEREST_TAGS = tagList(['浪漫', '文艺', '二次元', 'JK', '甜美', '简约', '优雅', '时尚', '科技', '数码', '摄影', '阅读', '学术', '咖啡', '手作', '旅行', '健身', '健康', '美妆', '香氛', '居家', '治愈', '音乐', '体验', '定制', '低预算', '美食', '游戏', '户外', '宠物', '影音']);
 // 风格取向标签（人物档案「风格取向」建议词，约 INTEREST_TAGS 两倍，用于更精细的定位匹配）
-export const STYLE_TAGS = ['甜美', '简约', '极简', '复古', '文艺', '优雅', '法式', '韩系', '日系', '高冷', '酷飒', '中性', '街头', '高级感', '性感', '可爱', '慵懒', '温柔', '华丽', '国风', '汉服', '二次元', '萌系', '暗黑', '机能', '田园', '波西米亚', '学院风', '职场', '干练', '科技感', '未来感', '自然', '清新', '治愈', '浪漫', '梦幻', '轻奢', '奢华', '实用', '硬核', '极客', '童趣', '搞怪', '小众', '潮流', '经典', '淑女', '帅气', '运动风', '商务', '复古港风'];
+export const STYLE_TAGS = tagList(['甜美', '简约', '极简', '复古', '文艺', '优雅', '法式', '韩系', '日系', '高冷', '酷飒', '中性', '街头', '高级感', '性感', '可爱', '慵懒', '温柔', '华丽', '国风', '汉服', '二次元', '萌系', '暗黑', '机能', '田园', '波西米亚', '学院风', '职场', '干练', '科技感', '未来感', '自然', '清新', '治愈', '浪漫', '梦幻', '轻奢', '奢华', '实用', '硬核', '极客', '童趣', '搞怪', '小众', '潮流', '经典', '淑女', '帅气', '运动风', '商务', '复古港风']);
 export const OCCASIONS = ['恋爱纪念日', '万天纪念日', '生日', '学术节点', '经期关怀', '日常', '毕业', '入学', '求婚', '假期', '小惊喜', '周末', '长纪念日'];

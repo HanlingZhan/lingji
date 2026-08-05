@@ -104,8 +104,20 @@ export function fieldHTML(f) {
       inner = `<input type="text" name="${f.key}" value="${esc(Array.isArray(v) ? v.join(', ') : v)}" placeholder="${esc(f.placeholder || '逗号分隔')}">`; break;
     case 'tagpick': {
       const tv = Array.isArray(v) ? v : String(v).split(',').map(s => s.trim()).filter(Boolean);
-      const sug = (f.suggest || []).map(t => `<span class="tp-chip sug${tv.includes(t) ? ' active' : ''}" data-t="${esc(t)}">${esc(t)}</span>`).join('');
-      const sel = tv.length ? tv.map(t => `<span class="tp-chip sel" data-t="${esc(t)}">${esc(t)}<span class="tp-x" data-t="${esc(t)}">×</span></span>`).join('') : '<span class="small muted">尚未选择</span>';
+      // 兼容旧数据（字符串数组）与新数据（{t, icon, color} 对象数组）
+      const normSuggest = (f.suggest || []).map(item => (typeof item === 'object' && item !== null) ? item : { t: item, icon: '', color: '' });
+      const sugChipHTML = meta => {
+        const icon = meta.icon ? `<span class="tp-ico">${esc(meta.icon)}</span>` : '';
+        const cls = `tp-chip sug${meta.color ? ' c-' + esc(meta.color) : ''}${tv.includes(meta.t) ? ' active' : ''}`;
+        return `<span class="${cls}" data-t="${esc(meta.t)}"${meta.icon ? ` data-icon="${esc(meta.icon)}"` : ''}${meta.color ? ` data-color="${esc(meta.color)}"` : ''}>${icon}<span>${esc(meta.t)}</span></span>`;
+      };
+      const selChipHTML = t => {
+        const meta = normSuggest.find(x => x.t === t) || { t, icon: '', color: '' };
+        const icon = meta.icon ? `<span class="tp-ico">${esc(meta.icon)}</span>` : '';
+        return `<span class="tp-chip sel${meta.color ? ' c-' + esc(meta.color) : ''}" data-t="${esc(t)}">${icon}<span>${esc(t)}</span><span class="tp-x" data-t="${esc(t)}">×</span></span>`;
+      };
+      const sug = normSuggest.map(sugChipHTML).join('');
+      const sel = tv.length ? tv.map(selChipHTML).join('') : '<span class="small muted">尚未选择</span>';
       inner = `<div class="tagpick" data-key="${f.key}">
         <div class="tp-block">
           <div class="tp-h">已选标签</div>
@@ -132,6 +144,8 @@ function tpGet(hidden) { return (hidden.value || '').split(',').map(s => s.trim(
 function tpSet(hidden, selBox, sugBox, arr) {
   hidden.value = arr.join(',');
   // 用 DOM API 构建，避免 innerHTML 解析 <button> 在 click 上下文中被浏览器当成新 click 自动派发
+  const sugChips = sugBox ? Array.from(sugBox.querySelectorAll('.tp-chip')) : [];
+  const metaMap = new Map(sugChips.map(c => [c.dataset.t, { icon: c.dataset.icon || '', color: c.dataset.color || '' }]));
   selBox.textContent = '';
   if (!arr.length) {
     const s = document.createElement('span');
@@ -140,9 +154,16 @@ function tpSet(hidden, selBox, sugBox, arr) {
     selBox.appendChild(s);
   } else {
     arr.forEach(t => {
+      const meta = metaMap.get(t) || { icon: '', color: '' };
       const chip = document.createElement('span');
-      chip.className = 'tp-chip sel';
+      chip.className = 'tp-chip sel' + (meta.color ? ' c-' + meta.color : '');
       chip.dataset.t = t;
+      if (meta.icon) {
+        const ico = document.createElement('span');
+        ico.className = 'tp-ico';
+        ico.textContent = meta.icon;
+        chip.appendChild(ico);
+      }
       chip.append(document.createTextNode(t));
       const x = document.createElement('span');
       x.className = 'tp-x';
@@ -152,7 +173,7 @@ function tpSet(hidden, selBox, sugBox, arr) {
       selBox.appendChild(chip);
     });
   }
-  sugBox.querySelectorAll('.tp-chip').forEach(c => c.classList.toggle('active', arr.includes(c.dataset.t)));
+  sugChips.forEach(c => c.classList.toggle('active', arr.includes(c.dataset.t)));
 }
 
 // 简易拖拽排序：容器内 [draggable] 元素
