@@ -215,18 +215,34 @@ async function fetchPwC(rules, errs) {
 // ---------------------------------------------------------------- 资讯
 async function fetchNews(errs) {
   const news = { hn: [], gh: [] };
-  try {
-    // 用 search_by_date 端点按时间排序（/search 按热度，老高分帖会永远排前）；
-    // 关键词只用单个广覆盖词 AI —— Algolia 的「OR 多词」查询会塌缩成个位数结果。
-    const j = await get('https://hn.algolia.com/api/v1/search_by_date?query=AI&tags=story&hitsPerPage=30&numericFilters=points%3E30',
-      { json: true, timeout: 20000 });
-    news.hn = (j.hits || []).map(h => ({
-      id: 'hn' + h.objectID, title: oneLine(h.title),
-      url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
-      points: h.points, comments: h.num_comments, at: h.created_at, by: h.author
-    })).filter(x => x.title);
-    log(`Hacker News → ${news.hn.length} 条`);
-  } catch (e) { errs.push('Hacker News：' + e.message); }
+  // Hacker News：按时间排序（/search_by_date）逐个关键词抓取后合并去重。
+  // 注意：Algolia 的「OR 多词」查询会塌缩成个位数结果，所以拆成多个独立查询再合并；
+  // 关键词覆盖通用 AI 与具身智能/机器人方向（HN 为英文站，用 embodied / robotics / humanoid 对应「具身智能」）。
+  const HN_QUERIES = ['AI', 'LLM', 'agent', 'embodied', 'robotics', 'humanoid'];
+  const HN_PER_QUERY = 7; // 每个关键词最多取 7 条，避免通用 AI 每日海量更新淹没具身/机器人方向
+  const hnSeen = new Set();
+  for (const q of HN_QUERIES) {
+    try {
+      const j = await get(`https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(q)}&tags=story&hitsPerPage=${HN_PER_QUERY}&numericFilters=points%3E30`,
+        { json: true, timeout: 20000 });
+      let cnt = 0;
+      for (const h of (j.hits || [])) {
+        if (cnt >= HN_PER_QUERY) break;
+        if (hnSeen.has(h.objectID)) continue;
+        hnSeen.add(h.objectID); cnt++;
+        const it = {
+          id: 'hn' + h.objectID, title: oneLine(h.title),
+          url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+          points: h.points, comments: h.num_comments, at: h.created_at, by: h.author
+        };
+        if (it.title) news.hn.push(it);
+      }
+    } catch (e) { errs.push(`Hacker News「${q}」：${e.message}`); }
+    await sleep(600);
+  }
+  news.hn.sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+  news.hn = news.hn.slice(0, 30);
+  log(`Hacker News → ${news.hn.length} 条`);
 
   // GitHub 搜索不支持把多个 topic 用 OR 串在一起再叠加限定符（会返回 422），必须逐个 topic 查询后合并
   const since = new Date(Date.now() - 21 * 864e5).toISOString().slice(0, 10);
