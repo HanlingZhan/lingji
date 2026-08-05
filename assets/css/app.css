@@ -457,11 +457,11 @@ table.tt td:first-child,table.tt th:first-child{width:66px;text-align:center;bac
   .fab-sheet{display:flex;flex-direction:column;gap:4px;position:fixed;right:16px;bottom:calc(140px + env(safe-area-inset-bottom));z-index:80;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:6px;box-shadow:var(--shadow-lg);width:152px}
   .fab-sheet button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;padding:11px 12px;border-radius:10px;cursor:pointer;font-size:13.5px;color:var(--ink)}
   .fab-sheet button:active{background:var(--blue-050)}
-  /* 底部导航：手机上纯图标 + active 显示小标签，4 入口必排下 */
-  .tabbar{box-shadow:0 -2px 16px rgba(16,42,80,.10);display:flex;justify-content:space-around;gap:0;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
-  .tabbar button{flex:none;width:25%;min-width:0;font-size:0;gap:0;padding:7px 0}
-  .tabbar button .ico{font-size:22px}
-  .tabbar button.active{font-size:9px;gap:2px}
+  /* 底部导航：手机上图标 + 常驻小标签（不点选也显示文字），整体压扁 */
+  .tabbar{box-shadow:0 -2px 14px rgba(16,42,80,.10);display:flex;justify-content:space-around;gap:0;padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
+  .tabbar button{flex:none;width:25%;min-width:0;font-size:9.5px;gap:1px;padding:4px 0;color:var(--muted);background:none;border:0;display:flex;flex-direction:column;align-items:center;cursor:pointer}
+  .tabbar button .ico{font-size:19px;line-height:1}
+  .tabbar button.active{color:var(--blue-600);font-weight:600}
   .stat b{font-size:19px}
   /* 移动端 toast 抬到底部导航上方，宽度撑满 */
   .toast-wrap{left:16px;right:16px;bottom:calc(86px + env(safe-area-inset-bottom));align-items:stretch}
