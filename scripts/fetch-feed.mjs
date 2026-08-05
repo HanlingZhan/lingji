@@ -216,7 +216,9 @@ async function fetchPwC(rules, errs) {
 async function fetchNews(errs) {
   const news = { hn: [], gh: [] };
   try {
-    const j = await get('https://hn.algolia.com/api/v1/search?query=AI%20OR%20LLM%20OR%20%22machine%20learning%22&tags=story&hitsPerPage=30&numericFilters=points%3E30',
+    // 用 search_by_date 端点按时间排序（/search 按热度，老高分帖会永远排前）；
+    // 关键词只用单个广覆盖词 AI —— Algolia 的「OR 多词」查询会塌缩成个位数结果。
+    const j = await get('https://hn.algolia.com/api/v1/search_by_date?query=AI&tags=story&hitsPerPage=30&numericFilters=points%3E30',
       { json: true, timeout: 20000 });
     news.hn = (j.hits || []).map(h => ({
       id: 'hn' + h.objectID, title: oneLine(h.title),
