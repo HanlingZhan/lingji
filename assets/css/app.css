@@ -177,11 +177,11 @@ body.has-bg::before{display:none}
 .tp-chip:hover{border-color:var(--tp-fg,var(--primary-400));transform:translateY(-1px);box-shadow:0 2px 5px rgba(0,0,0,.06)}
 .tp-chip:active{transform:scale(.96)}
 .tp-chip.sug{background:var(--tp-bg,var(--surface));color:var(--tp-fg,var(--ink-2))}
-.tp-chip.sug.active{background:var(--primary);color:#fff;transform:scale(.97);box-shadow:0 3px 8px rgba(37,99,235,.25)}
+.tp-chip.sug.active{background:var(--primary-100);color:var(--primary-700);border-color:var(--primary-400);transform:scale(.97);box-shadow:0 2px 6px rgba(61,111,242,.18)}
 .tp-chip.sug.active .tp-ico,.tp-chip.sel .tp-ico{filter:none}
-.tp-chip.sel{background:var(--primary);color:#fff}
-.tp-chip.sel:hover{border-color:rgba(255,255,255,.45)}
-.tp-chip.sel .tp-x{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:rgba(255,255,255,.28);border:none;color:#fff;width:18px;height:18px;border-radius:50%;font-size:12px;line-height:1;cursor:pointer;padding:0;margin-left:3px}
+.tp-chip.sel{background:var(--primary-100);color:var(--primary-700);border-color:var(--primary-400)}
+.tp-chip.sel:hover{border-color:var(--primary)}
+.tp-chip.sel .tp-x{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:var(--primary-400);border:none;color:#fff;width:18px;height:18px;border-radius:50%;font-size:12px;line-height:1;cursor:pointer;padding:0;margin-left:3px}
 .tp-chip.c-rose{--tp-bg:#fff1f2;--tp-fg:#be123c}
 .tp-chip.c-pink{--tp-bg:#fdf2f8;--tp-fg:#be185d}
 .tp-chip.c-fuchsia{--tp-bg:#fdf4ff;--tp-fg:#a21caf}
@@ -216,7 +216,7 @@ textarea{resize:vertical;min-height:72px}
 input[type=checkbox],input[type=radio]{accent-color:var(--primary);width:15px;height:15px}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
 .form-grid .full{grid-column:1/-1}
-.fld-section{grid-column:1/-1;margin:4px 0 0;padding:9px 12px;font-size:12.5px;font-weight:700;color:var(--primary-700);background:var(--primary-050);border-left:3px solid var(--primary);border-radius:8px;letter-spacing:.3px}
+.fld-section{grid-column:1/-1;margin:10px 0 2px;font-size:13px;font-weight:700;color:var(--ink);letter-spacing:.3px}
 
 .progress{height:6px;background:var(--primary-100);border-radius:6px;overflow:hidden}
 .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:6px;transition:width .5s}
