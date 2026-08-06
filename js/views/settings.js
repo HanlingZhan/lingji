@@ -185,11 +185,11 @@ function rerender() {
   };
   const hints = {
     generic: '端点填任意支持 GET 拉取 / PUT 推送 JSON 的地址（如 Cloudflare Workers KV、Supabase Storage、jsonbin）。令牌作为 Bearer 发送，可留空。',
-    github: '端点填仓库数据文件地址：https://api.github.com/repos/你的用户名/仓库名/contents/data/state.json （需先建仓库并建 data/ 目录）。令牌填有 repo 权限的 GitHub Personal Access Token。同一仓库也可开启 GitHub Pages 托管本应用，实现「托管+同步」一体。',
+    github: '端点填仓库数据文件地址：https://api.github.com/repos/你的用户名/仓库名/contents/data/state.json （需先建仓库并建 data/ 目录）。令牌填有 repo 权限的 GitHub Personal Access Token。⚠️ 若同步目标仓库是「公开」的，你的数据会被任何人读取——请务必勾选下方「启用端到端加密」，或改用私有仓库。不要直接把数据同步到托管本应用的公开仓库。',
     webdav: '端点填完整文件路径，如 https://dav.example.com/scholarhub/state.json 。令牌填 Basic 凭据：先把「用户名:密码」用 Base64 编码后填入（Windows 可用 certutil，mac/Linux 用 base64 命令）。'
   };
   const updHint = () => { const t = $('#syType').value; $('#syHint').textContent = hints[t] || ''; };
-  $('#syType').onchange = () => { updHint(); if ($('#syType').value === 'github' && !$('#syUrl').value.trim()) $('#syUrl').value = 'https://api.github.com/repos/HanlingZhan/lingji/contents/data/state.json'; };
+  $('#syType').onchange = () => { updHint(); if ($('#syType').value === 'github' && !$('#syUrl').value.trim()) $('#syUrl').value = 'https://api.github.com/repos/你的用户名/你的仓库/contents/data/state.json'; };
   updHint();
   $('#testSync').onclick = async () => {
     if (!saveSyncCfg()) return; const b = $('#testSync'); const old = b.textContent;
