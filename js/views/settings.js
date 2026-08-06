@@ -83,6 +83,11 @@ function rerender() {
       <label class="fld" style="flex-direction:row;align-items:center;gap:8px;margin-bottom:10px"><input type="checkbox" id="syAuto" ${sy.auto ? 'checked' : ''}><span>数据变更后自动推送（防抖 2.5 秒）</span></label>
       <label class="fld" style="margin-bottom:10px"><span>轻量后端代理 URL（可选）</span>
         <input type="url" id="proxyUrl" value="${esc(st.settings.backendProxy)}" placeholder="留空=前端直连；填 Cloudflare Workers 地址可解锁论文/资讯实时抓取+逐段翻译"></label>
+      <div style="height:1px;background:var(--line);margin:12px 0 10px"></div>
+      <label class="fld" style="flex-direction:row;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="syEnc" ${sy.crypto?.enabled ? 'checked' : ''}><span>🔐 启用端到端加密（数据上传前用密码加密，云端只存密文，仓库公开也读不出）</span></label>
+      <label class="fld" style="margin-bottom:8px"><span>加密密码</span><input type="password" id="syPass" placeholder="设置一道只有你知道的密码" autocomplete="new-password"></label>
+      <label class="fld" style="margin-bottom:8px"><span>确认密码</span><input type="password" id="syPass2" placeholder="再输入一次" autocomplete="new-password"></label>
+      <p class="small muted">⚠️ 密码仅保存在你本机浏览器，且无法找回。忘记密码将无法解密云端数据，请务必牢记；多端同步需在各端设置<b>相同密码</b>。</p>
       <div class="row">
         <button class="btn solid" id="saveSync">保存配置</button>
         <button class="btn" id="copySync">📋 复制配置</button>
@@ -131,7 +136,7 @@ function rerender() {
         <div class="stat"><b>${st.anniversaries.length}</b><span>纪念日</span></div>
         <div class="stat"><b>${storageSize()} KB</b><span>本地占用</span></div>
       </div>
-      <p class="small muted" style="margin-top:10px">数据默认仅保存在本机浏览器，不上传任何第三方服务器；启用云同步后仅发送到你自己配置的端点。建议定期导出 JSON 备份。</p>
+      <p class="small muted" style="margin-top:10px">数据默认仅保存在本机浏览器，不上传任何第三方服务器；启用云同步后仅发送到你自己配置的端点${sy.crypto?.enabled ? '，且已启用端到端加密（云端只存密文，仓库公开也读不出）' : '（建议到「多端云同步」中启用端到端加密，防止同步到的仓库被公开读取）'}。建议定期导出 JSON 备份。</p>
     </div></div>
 
     <div class="card w12"><div class="card-head"><h3>📱 多端使用说明</h3></div><div class="card-body">
@@ -154,9 +159,20 @@ function rerender() {
   };
   $('#reqPerm').onclick = async () => { await requestPermission(); rerender(); };
   $('#testNotif').onclick = () => { pushNotif('🔔 测试通知', '如果你看到系统弹窗，说明桌面提醒已生效', 'test', true); toast('已发送'); };
-  const saveSyncCfg = () => store.update(s => { Object.assign(s.settings.sync, { enabled: $('#syEn').checked, type: $('#syType').value, endpoint: $('#syUrl').value.trim(), token: $('#syTk').value.trim(), auto: $('#syAuto').checked }); s.settings.backendProxy = $('#proxyUrl').value.trim(); });
+  const saveSyncCfg = () => {
+    const en = $('#syEnc').checked;
+    let pass = '';
+    if (en) {
+      pass = $('#syPass').value;
+      const pass2 = $('#syPass2').value;
+      if (!pass) { toast('启用加密需填写加密密码', 'err'); return false; }
+      if (pass !== pass2) { toast('两次输入的密码不一致', 'err'); return false; }
+    }
+    store.update(s => { Object.assign(s.settings.sync, { enabled: $('#syEn').checked, type: $('#syType').value, endpoint: $('#syUrl').value.trim(), token: $('#syTk').value.trim(), auto: $('#syAuto').checked, crypto: { enabled: en, pass } }); s.settings.backendProxy = $('#proxyUrl').value.trim(); });
+    return true;
+  };
   $('#saveSync').onclick = async () => {
-    saveSyncCfg();
+    if (!saveSyncCfg()) return;
     toast('同步配置已保存', 'ok');
     if ($('#syEn').checked) {
       const b = $('#saveSync'); const old = b.textContent;
@@ -176,7 +192,7 @@ function rerender() {
   $('#syType').onchange = () => { updHint(); if ($('#syType').value === 'github' && !$('#syUrl').value.trim()) $('#syUrl').value = 'https://api.github.com/repos/HanlingZhan/lingji/contents/data/state.json'; };
   updHint();
   $('#testSync').onclick = async () => {
-    saveSyncCfg(); const b = $('#testSync'); const old = b.textContent;
+    if (!saveSyncCfg()) return; const b = $('#testSync'); const old = b.textContent;
     b.disabled = true; b.textContent = '检测中…';
     const r = await store.diagnose();
     b.disabled = false; b.textContent = old;
@@ -184,7 +200,7 @@ function rerender() {
   };
   // 一键自检：把本机配置 + 云端真实状态逐项打印出来，方便定位「保存成功却同步不上」
   $('#selfChk').onclick = async () => {
-    saveSyncCfg();
+    if (!saveSyncCfg()) return;
     const b = $('#selfChk'); const old = b.textContent;
     b.disabled = true; b.textContent = '检测中…';
     const rep = await store.selfCheck();
@@ -209,10 +225,10 @@ function rerender() {
   const encodeCfg = cfg => btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
   const decodeCfg = code => JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
   $('#copySync').onclick = () => {
-    saveSyncCfg();
+    if (!saveSyncCfg()) return;
     const s = S().settings.sync;
     if (!s.endpoint) return toast('请先填写同步端点再复制', 'err');
-    const code = encodeCfg({ t: s.type, e: s.endpoint, k: s.token });
+    const code = encodeCfg({ t: s.type, e: s.endpoint, k: s.token, c: s.crypto || { enabled: false, pass: '' } });
     const show = () => modal({ title: '复制同步配置', body: `<p class="small muted">复制下面这串配置码，到手机/iPad 设置页点「📥 粘贴配置」即可一键对齐云端。也可发给其他设备。</p><textarea id="cfgBox" rows="3" style="width:100%;font-family:monospace">${code}</textarea>`, foot: '<button class="btn" data-close>关闭</button>', onOpen: (b) => { const t = b.querySelector('#cfgBox'); t.select(); } });
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(() => toast('同步配置已复制到剪贴板，去其他设备「粘贴配置」', 'ok'), show);
     else show();
@@ -226,7 +242,7 @@ function rerender() {
         document.getElementById('doPaste').onclick = async () => {
           try {
             const cfg = decodeCfg(b.querySelector('#cfgIn').value);
-            store.update(s => { Object.assign(s.settings.sync, { enabled: true, type: cfg.t, endpoint: cfg.e, token: cfg.k, auto: true }); });
+            store.update(s => { Object.assign(s.settings.sync, { enabled: true, type: cfg.t, endpoint: cfg.e, token: cfg.k, auto: true, crypto: cfg.c || { enabled: false, pass: '' } }); });
             close();
             toast('已填入云端配置，开始同步…', 'ok');
             const r = await store.push();
@@ -238,14 +254,14 @@ function rerender() {
     });
   };
   $('#pullBtn').onclick = async () => {
-    saveSyncCfg(); const b = $('#pullBtn'); b.disabled = true;
+    if (!saveSyncCfg()) return; const b = $('#pullBtn'); b.disabled = true;
     const r = await store.pull();
     b.disabled = false;
     if (r.ok) toast(`已从云端拉取并合并（新增 ${r.added || 0} 条）`, 'ok'); else toast('拉取失败：' + r.msg, 'err');
     rerender();
   };
   $('#pushBtn').onclick = async () => {
-    saveSyncCfg(); const b = $('#pushBtn'); b.disabled = true;
+    if (!saveSyncCfg()) return; const b = $('#pushBtn'); b.disabled = true;
     const r = await store.push();
     b.disabled = false;
     if (r.ok) toast(`双向同步完成：已合并云端 ${r.pulled || 0} 条并上传本机数据`, 'ok'); else toast('同步失败：' + r.msg, 'err');

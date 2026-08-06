@@ -59,7 +59,7 @@ function defaults() {
     dashboard: { order: DEFAULT_DASH.map(d => d.id), hidden: [], widths: {} },
     settings: {
       theme: 'light',
-      sync: { enabled: false, type: 'generic', endpoint: '', token: '', auto: true },
+      sync: { enabled: false, type: 'generic', endpoint: '', token: '', auto: true, crypto: { enabled: false, pass: '' } },
       backendProxy: '',
       notify: { desktop: true, inApp: true, sound: false, dailyPaperHour: 8, wordHour: 9 }
     },
@@ -198,6 +198,7 @@ class Store extends EventTarget {
           const j = JSON.parse(text);
           const raw = b64decodeUnicode(j.content || '');
           const stj = raw.trim() ? JSON.parse(raw) : null;
+          if (stj && stj._enc === 'v1') return { ok: true, msg: '连接正常：云端数据已启用端到端加密（密文存储，无法在此统计具体条数）' };
           if (stj) {
             const arrAt = (path) => { let o = stj; for (const p of path.split('.')) { o = o?.[p]; if (o === undefined) return []; } return Array.isArray(o) ? o : []; };
             const cnt = ['reminders', 'board.tasks', 'courses', 'paperLib', 'anniversaries', 'fitness.logs', 'cycle.records']
@@ -251,10 +252,14 @@ class Store extends EventTarget {
           if (!raw.trim()) L.push('⚠️ 云端文件是空的（曾被空数据覆盖）→ 请在有数据的设备点「🔄 立即双向同步」');
           else {
             const o = JSON.parse(raw);
-            const at = p => { let x = o; for (const k of p.split('.')) { x = x?.[k]; if (x === undefined) return []; } return Array.isArray(x) ? x : []; };
-            L.push(`云端：提醒 ${at('reminders').length}｜看板 ${at('board.tasks').length}｜课程 ${at('courses').length}｜文库 ${at('paperLib').length}｜纪念日 ${at('anniversaries').length}｜健身 ${at('fitness.logs').length}｜周期 ${at('cycle.records').length}`);
-            L.push('云端最后写入设备：' + String(o.meta?.device || '未知').slice(0, 40));
-            L.push('云端最后写入时间：' + (o.meta?.lastLocal ? new Date(o.meta.lastLocal).toLocaleString() : '未知'));
+            if (o && o._enc === 'v1') {
+              L.push('☁️ 云端数据已加密：以密文形式存储（端到端加密），本工具不解析具体内容');
+            } else {
+              const at = p => { let x = o; for (const k of p.split('.')) { x = x?.[k]; if (x === undefined) return []; } return Array.isArray(x) ? x : []; };
+              L.push(`云端：提醒 ${at('reminders').length}｜看板 ${at('board.tasks').length}｜课程 ${at('courses').length}｜文库 ${at('paperLib').length}｜纪念日 ${at('anniversaries').length}｜健身 ${at('fitness.logs').length}｜周期 ${at('cycle.records').length}`);
+              L.push('云端最后写入设备：' + String(o.meta?.device || '未知').slice(0, 40));
+              L.push('云端最后写入时间：' + (o.meta?.lastLocal ? new Date(o.meta.lastLocal).toLocaleString() : '未知'));
+            }
           }
         } else L.push('响应长度：' + txt.length + ' 字符');
       }
@@ -285,13 +290,55 @@ function b64decodeUnicode(b64) {
   const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
   return new TextDecoder('utf-8').decode(bytes);
 }
-async function genGet(s) {
+
+// ============ 端到端加密（云端数据加密） ============
+// 算法：PBKDF2(SHA-256, 10万次) 派生 AES-GCM 256 位密钥；密文结构 {_enc:'v1', salt, iv, data}（均 base64url）
+// 数据库：Web Crypto（浏览器原生，仅 https / localhost 安全上下文可用）。密钥不存储，只存密码于本机。
+function _b64u(bytes) { let bin = ''; const chunk = 0x8000; for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk)); return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function _fromB64u(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); const bin = atob(s + '==='.slice((s.length + 3) % 4)); return Uint8Array.from(bin, c => c.charCodeAt(0)); }
+async function _deriveKey(pass, salt) {
+  const enc = new TextEncoder();
+  const mat = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, mat, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+export async function encryptState(state, pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await _deriveKey(pass, salt);
+  const pt = new TextEncoder().encode(JSON.stringify(state));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, pt));
+  return { _enc: 'v1', salt: _b64u(salt), iv: _b64u(iv), data: _b64u(ct) };
+}
+export async function decryptState(obj, pass) {
+  if (!obj || obj._enc !== 'v1') return obj;            // 明文兼容：无加密标记直接返回
+  const key = await _deriveKey(pass, _fromB64u(obj.salt));
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: _fromB64u(obj.iv) }, key, _fromB64u(obj.data));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+export function isEncrypted(obj) { return !!(obj && obj._enc === 'v1'); }
+// 下载后按需解密：密文需用本机密码解；若加密但本机未设密码则报错提示
+async function decryptIfNeeded(obj, store) {
+  if (!isEncrypted(obj)) return obj;
+  const c = store.state.settings.sync.crypto;
+  if (!c || !c.enabled || !c.pass) throw new Error('云端数据已加密，但本机未设置加密密码，请在「设置 → 多端云同步」中填写相同密码');
+  try { return await decryptState(obj, c.pass); }
+  catch { throw new Error('解密失败：加密密码不正确（或云端密文已损坏）'); }
+}
+// 生成本次要上传的字符串：开启加密则输出密文 wrapper 的 JSON，否则输出明文 state JSON
+async function payloadString(store, s) {
+  const plain = uploadState(store.state);
+  const c = store.state.settings.sync.crypto;
+  if (c && c.enabled && c.pass) return JSON.stringify(await encryptState(plain, c.pass));
+  return JSON.stringify(plain);
+}
+async function genGet(s, store) {
   const r = await fetch(s.endpoint, { headers: s.token ? { Authorization: 'Bearer ' + s.token } : {} });
   if (!r.ok) throw new Error('HTTP ' + r.status);
-  return r.json();
+  return decryptIfNeeded(await r.json(), store);
 }
-async function genPut(s, state) {
-  const r = await fetch(s.endpoint, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(s.token ? { Authorization: 'Bearer ' + s.token } : {}) }, body: JSON.stringify(state) });
+async function genPut(s, store) {
+  const payload = await payloadString(store, s);
+  const r = await fetch(s.endpoint, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(s.token ? { Authorization: 'Bearer ' + s.token } : {}) }, body: payload });
   if (!r.ok) throw new Error('HTTP ' + r.status);
 }
 // GitHub 报错统一转成看得懂的中文
@@ -322,14 +369,16 @@ async function ghGet(s, store) {
   store.state.meta._ghSha = j.sha;
   const text = b64decodeUnicode(j.content || '');
   if (!text.trim()) return null;                   // 空文件视为无远端数据
-  try { return JSON.parse(text); } catch { throw new Error('云端数据不是合法 JSON，已跳过合并'); }
+  let obj;
+  try { obj = JSON.parse(text); } catch { throw new Error('云端数据不是合法 JSON，已跳过合并'); }
+  return decryptIfNeeded(obj, store);
 }
-async function ghPut(s, state, store) {
+async function ghPut(s, store) {
   let sha = store.state.meta._ghSha || await ghSha(s);
   let r;
   for (let attempt = 0; attempt < 8; attempt++) {
     // 每次都基于最新（可能已合并远端）的本机状态重新构建，确保不丢失其他端写入的数据
-    const payload = JSON.stringify(uploadState(store.state));
+    const payload = await payloadString(store, s);
     if (payload.length > 900 * 1024) throw new Error('待上传数据约 ' + (payload.length / 1024).toFixed(0) + ' KB，超过 GitHub 单文件同步上限（约 1MB）。请在设置里「恢复默认背景」或清理文库后重试');
     const body = { message: 'sync 灵记 ' + new Date().toISOString().slice(0, 19), content: b64encodeUnicode(payload) };
     if (sha) body.sha = sha; else delete body.sha;
@@ -345,25 +394,25 @@ async function ghPut(s, state, store) {
   if (!r.ok) throw await ghError(r);
   try { store.state.meta._ghSha = (await r.json()).content.sha; } catch { }
 }
-async function wdGet(s) {
+async function wdGet(s, store) {
   const r = await fetch(s.endpoint, { headers: { Authorization: 'Basic ' + s.token } });
   if (!r.ok) throw new Error('WebDAV HTTP ' + r.status);
-  return r.json();
+  return decryptIfNeeded(await r.json(), store);
 }
-async function wdPut(s, state) {
-  const r = await fetch(s.endpoint, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Basic ' + s.token }, body: JSON.stringify(state) });
+async function wdPut(s, store) {
+  const payload = await payloadString(store, s);
+  const r = await fetch(s.endpoint, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Basic ' + s.token }, body: payload });
   if (!r.ok) throw new Error('WebDAV HTTP ' + r.status);
 }
 async function fetchRemote(s, store) {
   if (s.type === 'github') return ghGet(s, store);
-  if (s.type === 'webdav') return wdGet(s);
-  return genGet(s);
+  if (s.type === 'webdav') return wdGet(s, store);
+  return genGet(s, store);
 }
 async function pushRemote(s, store) {
-  const body = uploadState(store.state);
-  if (s.type === 'github') return ghPut(s, body, store);
-  if (s.type === 'webdav') return wdPut(s, body);
-  return genPut(s, body);
+  if (s.type === 'github') return ghPut(s, store);
+  if (s.type === 'webdav') return wdPut(s, store);
+  return genPut(s, store);
 }
 // 构造「上传到云端的净化版数据」：
 // 1) 不上传同步端点与令牌（避免凭据进入仓库，也避免覆盖其他设备的配置）
