@@ -73,3 +73,5 @@ export function pick(arr, n) { const c = [...arr]; const out = []; while (out.le
 export function groupBy(arr, fn) { return arr.reduce((m, x) => { const k = fn(x); (m[k] = m[k] || []).push(x); return m; }, {}); }
 export const TAGS = { research: { label: '科研', cls: 'purple' }, course: { label: '课程', cls: 'teal' }, life: { label: '生活', cls: 'pink' }, other: { label: '其他', cls: 'gray' } };
 export const LEVELS = { high: { label: '紧急重要', cls: 'danger' }, mid: { label: '一般', cls: 'warn' }, low: { label: '低优先', cls: 'ok' } };
+// 看板任务标签（在任务卡与待办快捷建卡时复用）
+export const BOARD_TAGS = ['重要', '紧急', '本周', '待跟进', '灵感', '购物', '健康', '学习', '工作', '生活', '聚会', '送礼'];

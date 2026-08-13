@@ -1,6 +1,6 @@
 // ============ 多分区个人事项看板 ============
 import { store, S } from '../store.js';
-import { $, $$, esc, ymd, hm, fmtRel, toLocalInput, diffDays, download } from '../utils.js';
+import { $, $$, esc, ymd, hm, fmtRel, toLocalInput, diffDays, download, BOARD_TAGS } from '../utils.js';
 import { formModal, toast, confirmDlg, emptyBox, modal } from '../ui.js';
 import { quickCreate } from './calendar.js';
 
@@ -74,6 +74,7 @@ function taskHTML(t) {
     <div class="meta">
       ${t.due ? `<span class="chip ${dueCls}">🕐 ${ymd(t.due)} ${hm(t.due)}${dd !== null ? ' · ' + fmtRel(t.due) : ''}</span>` : ''}
       <span class="chip ${PRI[t.priority]?.c || 'gray'}">${PRI[t.priority]?.t || '中'}优先</span>
+      ${(t.tags || []).map(tg => `<span class="chip tag">#${esc(tg)}</span>`).join('')}
       ${t.files?.length ? `<span class="chip gray">📎 ${t.files.length}</span>` : ''}
       ${t.auto ? '<span class="chip teal">课表同步</span>' : ''}
       ${t.note ? '<span class="chip gray">📝</span>' : ''}
@@ -97,6 +98,7 @@ export function openTaskForm(rec = null, col = 'personal') {
       { key: 'priority', label: '优先级', type: 'select', value: rec?.priority || 'mid', options: Object.entries(PRI).map(([v, o]) => ({ v, t: o.t + '优先级' })) },
       { key: 'due', label: '截止时间', type: 'datetime-local', value: rec?.due ? toLocalInput(rec.due) : '' },
       { key: 'remind', label: '同时创建日历提醒', type: 'checkbox', value: false },
+      { key: 'tags', label: '标签（用于分类与筛选）', type: 'tagpick', span: 'full', suggest: BOARD_TAGS, value: rec?.tags || [] },
       { key: 'note', label: '详细备注', type: 'textarea', span: 'full', value: rec?.note || '' }
     ],
     extra: `<div style="margin-top:12px"><label class="fld"><span>附件（≤ 2MB / 个，本地保存）</span><input type="file" id="taskFiles" multiple></label>
@@ -104,7 +106,7 @@ export function openTaskForm(rec = null, col = 'personal') {
     submitText: rec ? '保存' : '创建',
     onSubmit: (d, close) => {
       const files = pendingFiles.length ? [...(rec?.files || []), ...pendingFiles] : (rec?.files || []);
-      const data = { title: d.title, col: d.col, priority: d.priority, due: d.due || '', note: d.note, files };
+      const data = { title: d.title, col: d.col, priority: d.priority, due: d.due || '', note: d.note, tags: d.tags || [], files };
       if (rec) store.patch('board.tasks', rec.id, data);
       else store.add('board.tasks', { ...data, done: false, order: Date.now() });
       if (d.remind && d.due) quickCreate('【任务】' + d.title, d.due, d.col === 'course' ? 'course' : d.col === 'research' ? 'research' : 'life', { note: d.note });

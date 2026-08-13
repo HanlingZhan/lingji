@@ -1,6 +1,6 @@
 // ============ 日历与长期提醒 ============
 import { store, S } from '../store.js';
-import { $, $$, esc, ymd, hm, pad, addDays, addMonths, startOfDay, startOfWeek, diffDays, isSameDay, weekdayCN, WEEK_CN, nextOccurrence, fmtRel, toLocalInput, TAGS, LEVELS, uid } from '../utils.js';
+import { $, $$, esc, ymd, hm, pad, addDays, addMonths, startOfDay, startOfWeek, diffDays, isSameDay, weekdayCN, WEEK_CN, nextOccurrence, fmtRel, toLocalInput, TAGS, LEVELS, BOARD_TAGS, uid } from '../utils.js';
 import { formModal, toast, confirmDlg, emptyBox, modal } from '../ui.js';
 import { requestPermission } from '../notify.js';
 import { courseOccursOn, currentWeek, SECTION_TIME } from './schedule.js';
@@ -67,6 +67,9 @@ export function openReminderForm(rec = null, preset = {}) {
       { key: 'level', label: '重要等级（决定提醒强度）', type: 'select', value: rec?.level || 'mid', options: Object.entries(LEVELS).map(([v, o]) => ({ v, t: o.label })) },
       { key: 'repeat', label: '重复规则', type: 'select', value: rec?.repeat || 'none', options: REPEATS },
       { key: 'advance', label: '提前提醒', type: 'select', value: String(rec?.advance ?? 60), options: ADVANCES.map(a => ({ v: String(a.v), t: a.t })) },
+      { key: 'toBoard', label: '同时一键加入看板', type: 'checkbox', value: false, hint: '创建提醒的同时，在看板生成一张同名任务卡' },
+      { key: 'boardCol', label: '看板分区', type: 'select', value: rec?.boardCol || 'personal', options: S().board.order.map(k => ({ v: k, t: S().board.cols[k].icon + ' ' + S().board.cols[k].name })) },
+      { key: 'boardTags', label: '看板标签', type: 'tagpick', span: 'full', suggest: BOARD_TAGS, value: rec?.boardTags || [], hint: '为该看板任务挑选标签，便于分类与筛选（默认带入本提醒的分类）' },
       { key: 'note', label: '备注', type: 'textarea', span: 'full', value: rec?.note || '', placeholder: '补充说明、链接等' }
     ],
     submitText: isEdit ? '保存修改' : '创建',
@@ -74,7 +77,12 @@ export function openReminderForm(rec = null, preset = {}) {
       const data = { ...d, at: new Date(d.at).toISOString(), advance: Number(d.advance) };
       if (isEdit) store.patch('reminders', rec.id, data);
       else store.add('reminders', { ...data, done: false });
-      toast(isEdit ? '已更新' : '提醒已创建', 'ok');
+      // 一键加入看板：仅在「新建并勾选」时自动生成同名任务卡，避免编辑时重复建卡
+      if (d.toBoard && !isEdit) {
+        const tags = (d.boardTags && d.boardTags.length) ? d.boardTags : [TAGS[d.tag]?.label || '其他'];
+        store.add('board.tasks', { title: d.title, col: d.boardCol, priority: d.level === 'high' ? 'high' : d.level === 'low' ? 'low' : 'mid', due: d.at || '', note: d.note, tags, done: false, order: Date.now() });
+      }
+      toast(isEdit ? '已更新' : (d.toBoard ? '提醒已创建并已加入看板' : '提醒已创建'), 'ok');
       requestPermission();
       rerender();
     }
