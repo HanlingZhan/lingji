@@ -1,10 +1,10 @@
 // 灵记 Service Worker —— 缓存应用壳，支持离线使用。
-const CACHE = 'lingji-v35';
+const CACHE = 'lingji-v36';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   'assets/css/app.css',
   'assets/icon.svg', 'assets/icon-192.png', 'assets/icon-512.png', 'assets/apple-touch-icon.png',
-  'js/app.js', 'js/store.js', 'js/ui.js', 'js/utils.js', 'js/notify.js',
+  'js/app.js', 'js/store.js', 'js/ui.js', 'js/utils.js', 'js/notify.js', 'js/push.js',
   'js/data/gifts.js', 'js/data/jobs.js', 'js/data/venues.js', 'js/data/words.js',
   'js/views/anniversary.js', 'js/views/board.js', 'js/views/calendar.js', 'js/views/dashboard.js',
   'js/views/fitness.js', 'js/views/jobs.js', 'js/views/news.js', 'js/views/papers.js',
@@ -32,4 +32,30 @@ self.addEventListener('fetch', e => {
       return res;
     }).catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
   );
+});
+
+// ---- 系统推送（手机 / iPad 提醒事项到期通知） ----
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch { data = { title: '灵记', body: e.data ? e.data.text() : '' }; }
+  const opts = {
+    body: data.body || '',
+    icon: './assets/icon-192.png',
+    badge: './assets/icon-192.png',
+    tag: data.tag || undefined,
+    data: { url: data.url || './#/calendar' },
+    vibrate: [100, 50, 100]
+  };
+  e.waitUntil(self.registration.showNotification(data.title || '灵记', opts));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || './#/calendar';
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const c of list) {
+      if ('focus' in c) { c.navigate(url); return c.focus(); }
+    }
+    return clients.openWindow(url);
+  }));
 });

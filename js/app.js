@@ -3,6 +3,7 @@ import { $, $$, esc, fmtAgo, uid } from './utils.js';
 import { store, S } from './store.js';
 import { toast, modal } from './ui.js';
 import { checkAll } from './notify.js';
+import { initPush } from './push.js';
 
 import * as Dashboard from './views/dashboard.js';
 import * as Calendar from './views/calendar.js';
@@ -193,6 +194,8 @@ async function boot() {
       });
     } catch (e) { console.warn('SW 注册失败', e); }
   }
+  // 系统推送（仅手机 / iPad 启用；内部自动判断设备并跳过桌面端）
+  initPush();
 }
 boot();
 

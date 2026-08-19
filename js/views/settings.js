@@ -3,6 +3,7 @@ import { store, S } from '../store.js';
 import { $, esc, ymd, fmtAgo, download } from '../utils.js';
 import { formModal, toast, confirmDlg, modal } from '../ui.js';
 import { requestPermission, pushNotif } from '../notify.js';
+import { pushSupported, pushBlockedReason, pushState, pushStateChip, enablePush, disablePush, testPush } from '../push.js';
 
 let host = null;
 export function render(el) { host = el; rerender(); }
@@ -64,6 +65,18 @@ function rerender() {
         <button class="btn solid" id="saveNotif">保存</button>
       </div>
       <p class="small muted" style="margin-top:8px">重要等级为「紧急重要」的事项会在标题前加醒目标识并优先弹窗。</p>
+    </div></div>
+
+    <div class="card"><div class="card-head"><h3>📲 系统推送（手机 / iPad）</h3>
+      <span class="chip ${pushStateChip()}">${pushState().text}</span></div><div class="card-body">
+      ${pushSupported() ? `
+      <p class="small muted">提醒事项到期时，通过系统通知推送到手机 / iPad，锁屏也能看到，点通知直接打开灵记。${st.settings.backendProxy ? '' : '⚠️ 需要先在下方「☁️ 多端云同步」里填写后端代理 URL（Cloudflare Worker 地址）并保存。'}</p>
+      <div class="row">
+        <button class="btn solid" id="pushEnable">开启推送</button>
+        <button class="btn" id="pushDisable">关闭推送</button>
+        <button class="btn" id="pushTest">发送测试推送</button>
+      </div>
+      <p class="small muted" style="margin-top:8px">iOS / iPadOS 需 16.4+，且必须从<b>主屏幕图标</b>打开灵记后再点「开启推送」授权（Safari 标签页里没有授权入口）；安卓 Chrome 直接可用。提醒到期时云端每分钟检查一次并推送。</p>` : `<p class="small muted">${pushBlockedReason()}</p>`}
     </div></div>
 
     <div class="card"><div class="card-head"><h3>☁️ 多端云同步</h3>
@@ -159,6 +172,10 @@ function rerender() {
   };
   $('#reqPerm').onclick = async () => { await requestPermission(); rerender(); };
   $('#testNotif').onclick = () => { pushNotif('🔔 测试通知', '如果你看到系统弹窗，说明桌面提醒已生效', 'test', true); toast('已发送'); };
+  const pushEnBtn = $('#pushEnable'), pushDisBtn = $('#pushDisable'), pushTestBtn = $('#pushTest');
+  if (pushEnBtn) pushEnBtn.onclick = async () => { await enablePush(); rerender(); };
+  if (pushDisBtn) pushDisBtn.onclick = async () => { await disablePush(); rerender(); };
+  if (pushTestBtn) pushTestBtn.onclick = async () => { await testPush(); };
   const saveSyncCfg = () => {
     const en = $('#syEnc').checked;
     let pass = '';

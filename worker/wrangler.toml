@@ -3,3 +3,27 @@ main = "index.js"
 compatibility_date = "2024-09-23"
 # 部署：在本地安装 wrangler 后执行 `wrangler deploy`；或在 Cloudflare 控制台粘贴 index.js 内容。
 # 部署后会得到一个 https://lingji-proxy.<你的子域>.workers.dev 地址，把它填进 App「设置 → 后端代理 URL」。
+
+# ---- 系统推送（手机 / iPad 提醒推送）新增配置 ----
+
+# ① KV 命名空间：存放各设备的推送订阅与提醒快照
+# 创建：npx wrangler kv namespace create LINGJI_PUSH
+# 把输出里的 id 粘贴到下面，再重新部署。
+[[kv_namespaces]]
+binding = "LINGJI_PUSH"
+id = "PASTE_KV_NAMESPACE_ID_HERE"
+
+# ② 公开变量（可提交到仓库）
+[vars]
+VAPID_PUBLIC_KEY = "BN3YGwq-g9EGqZcXr5q0kJX7WlgN1qTE4KSRF-zxTY-ZPyrZt_kyzb8jH1eF7GOLF06z4ftdemBw7l6yM25kEv4"
+VAPID_SUBJECT = "mailto:hanlingzhan@users.noreply.github.com"
+SITE_URL = "https://hanlingzhan.github.io/lingji"
+
+# ③ 私有密钥：不要写进文件，用命令注入 Secret：
+#    npx wrangler secret put VAPID_PRIVATE_KEY
+#    值 = {"kty":"EC","crv":"P-256","x":"3dgbCr6D0QaplxevmrSQlftaWA3WpMTgpJEX7PFNj5k","y":"PyrZt_kyzb8jH1eF7GOLF06z4ftdemBw7l6yM25kEv4","d":"x9mvw9wPyFWjKpP0tAVFt0IVjB5h4D5SdU_61CTuUCE"}
+
+# ④ 定时器：每分钟检查一次提醒是否到期
+# 免费版若提示 cron 最小间隔限制，改成 "*/5 * * * *"（5 分钟检查一次，提醒最迟晚 5 分钟）
+[triggers]
+crons = ["* * * * *"]
