@@ -75,3 +75,7 @@ export const TAGS = { research: { label: '科研', cls: 'purple' }, course: { la
 export const LEVELS = { high: { label: '紧急重要', cls: 'danger' }, mid: { label: '一般', cls: 'warn' }, low: { label: '低优先', cls: 'ok' } };
 // 看板任务标签（在任务卡与待办快捷建卡时复用）
 export const BOARD_TAGS = ['重要', '紧急', '本周', '待跟进', '灵感', '购物', '健康', '学习', '工作', '生活', '聚会', '送礼'];
+// 看板分区安全访问：分区可能被云同步移除/缺失，取不到时回退到「个人事务」
+export function colName(board, k) { return board?.cols?.[k]?.name || '个人事务'; }
+export function colIcon(board, k) { return board?.cols?.[k]?.icon || '📌'; }
+export function colLabel(board, k) { return `${colIcon(board, k)} ${colName(board, k)}`; }

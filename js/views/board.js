@@ -1,6 +1,6 @@
 // ============ 多分区个人事项看板 ============
 import { store, S } from '../store.js';
-import { $, $$, esc, ymd, hm, fmtRel, toLocalInput, diffDays, download, BOARD_TAGS } from '../utils.js';
+import { $, $$, esc, ymd, hm, fmtRel, toLocalInput, diffDays, download, BOARD_TAGS, colLabel, colName, colIcon } from '../utils.js';
 import { formModal, toast, confirmDlg, emptyBox, modal } from '../ui.js';
 import { quickCreate } from './calendar.js';
 
@@ -9,14 +9,23 @@ let host = null, showDone = false, dragId = null;
 
 export function render(el) { host = el; rerender(); }
 
+// 分区顺序的健壮来源：order 优先，找不到的分区 key 补到末尾（防云同步 pull 丢分区）
+export function colOrder(board = S().board) {
+  const seen = new Set();
+  const out = [];
+  [...(board.order || []), ...Object.keys(board.cols || {})].forEach(k => { if (!seen.has(k)) { seen.add(k); out.push(k); } });
+  return out;
+}
+
 function rerender() {
   if (!host) return;
   const st = S(), b = st.board;
-  const stats = b.order.map(k => ({ k, n: b.tasks.filter(t => t.col === k && !t.done).length }));
+  const order = colOrder(b);
+  const stats = order.map(k => ({ k, n: b.tasks.filter(t => t.col === k && !t.done).length }));
   host.innerHTML = `
   <div class="row" style="margin-bottom:14px">
     <div class="stat-row" style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
-      ${stats.map(s => `<div class="stat"><b>${s.n}</b><span>${b.cols[s.k].icon} ${b.cols[s.k].name}</span></div>`).join('')}
+      ${stats.map(s => `<div class="stat"><b>${s.n}</b><span>${colLabel(b, s.k)}</span></div>`).join('')}
     </div>
   </div>
   <div class="row" style="margin-bottom:12px">
@@ -29,7 +38,7 @@ function rerender() {
     <button class="primary-btn" id="addTask">＋ 新建任务</button>
   </div>
   <div class="board" id="board">
-    ${b.order.map(k => colHTML(k)).join('')}
+    ${order.map(k => colHTML(k)).join('')}
   </div>`;
 
   $('#addTask').onclick = () => openTaskForm();
@@ -40,7 +49,7 @@ function rerender() {
   });
   $('#expBtn').onclick = () => {
     const lines = ['分区,任务,截止时间,优先级,状态,备注'];
-    S().board.tasks.forEach(t => lines.push([S().board.cols[t.col].name, t.title, t.due || '', PRI[t.priority]?.t || '', t.done ? '已完成' : '进行中', (t.note || '').replace(/[\n,]/g, ' ')].map(x => `"${x}"`).join(',')));
+    S().board.tasks.forEach(t => lines.push([colName(S().board, t.col), t.title, t.due || '', PRI[t.priority]?.t || '', t.done ? '已完成' : '进行中', (t.note || '').replace(/[\n,]/g, ' ')].map(x => `"${x}"`).join(',')));
     download('看板任务导出.csv', '\ufeff' + lines.join('\n'), 'text/csv');
   };
   bindDnD(); bindTouchDnD();
@@ -55,11 +64,12 @@ function rerender() {
 
 function colHTML(k) {
   const b = S().board;
+  const cc = b.cols[k] || { name: '未命名', icon: '📌' };
   const list = b.tasks.filter(t => t.col === k && (showDone || !t.done))
     .sort((a, b2) => (a.done - b2.done) || (a.order ?? 0) - (b2.order ?? 0) || (new Date(a.due || '2099') - new Date(b2.due || '2099')));
   return `<div class="board-col" data-col="${k}">
     <div class="board-col-head" draggable="true" data-colhead="${k}">
-      <span>${b.cols[k].icon}</span><b>${b.cols[k].name}</b>
+      <span>${cc.icon}</span><b>${cc.name}</b>
       <span class="chip gray">${list.filter(t => !t.done).length}</span>
       <div class="spacer"></div>
       <button class="btn sm" data-addcol="${k}" title="在此分区新建任务">＋</button>
@@ -97,10 +107,10 @@ const COL_ICONS = ['📌', '🎯', '💡', '🔥', '⭐', '📚', '🔬', '🏠'
 
 function deleteCol(key) {
   const n = S().board.tasks.filter(t => t.col === key).length;
-  confirmDlg(`删除分区「${S().board.cols[key].name}」？该分区下的 ${n} 个任务将一并删除，不可恢复。`, () => {
+  confirmDlg(`删除分区「${colName(S().board, key)}」？该分区下的 ${n} 个任务将一并删除，不可恢复。`, () => {
     store.update(s => {
       delete s.board.cols[key];
-      s.board.order = s.board.order.filter(x => x !== key);
+      s.board.order = (s.board.order || []).filter(x => x !== key);
       s.board.tasks = s.board.tasks.filter(t => t.col !== key);
     });
     toast('分区已删除', 'ok'); rerender();
@@ -109,13 +119,15 @@ function deleteCol(key) {
 
 export function openColForm(key = null) {
   const b = S().board;
+  const order = colOrder(b);
   const isEdit = !!key;
+  const cur = isEdit ? (b.cols[key] || { name: '', icon: '📌' }) : { name: '', icon: '📌' };
   formModal({
     title: isEdit ? '编辑分区' : '新建分区',
     fields: [
-      { key: 'name', label: '分区名称', required: true, span: 'full', value: isEdit ? b.cols[key].name : '', placeholder: '例如：毕业论文 / 健身计划' },
-      { key: 'icon', label: '图标（输入一个 emoji，或点击下方选择）', span: 'full', value: isEdit ? b.cols[key].icon : '📌' },
-      { key: 'oidx', label: '排序位置', type: 'select', value: isEdit ? String(b.order.indexOf(key)) : String(b.order.length), options: b.order.map((k, i) => ({ v: String(i), t: (i + 1) + ' · ' + b.cols[k].name })).concat([{ v: String(b.order.length), t: (b.order.length + 1) + ' · 末尾' }]) }
+      { key: 'name', label: '分区名称', required: true, span: 'full', value: isEdit ? cur.name : '', placeholder: '例如：毕业论文 / 健身计划' },
+      { key: 'icon', label: '图标（输入一个 emoji，或点击下方选择）', span: 'full', value: isEdit ? cur.icon : '📌' },
+      { key: 'oidx', label: '排序位置', type: 'select', value: isEdit ? String(order.indexOf(key) < 0 ? order.length : order.indexOf(key)) : String(order.length), options: order.map((k, i) => ({ v: String(i), t: (i + 1) + ' · ' + colName(b, k) })).concat([{ v: String(order.length), t: (order.length + 1) + ' · 末尾' }]) }
     ],
     extra: `<div class="small muted" style="margin-top:10px">点击选择图标：<div id="iconPick" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${COL_ICONS.map(ic => `<button type="button" class="chip" data-ic="${ic}" style="cursor:pointer;font-size:18px;padding:4px 8px">${ic}</button>`).join('')}</div></div>${isEdit ? `<div style="margin-top:14px;border-top:1px solid var(--bd,#eee);padding-top:12px"><button class="btn danger sm" id="delCol" data-delcol="${key}">🗑 删除该分区</button> <span class="small muted">（该分区下 ${b.tasks.filter(t => t.col === key).length} 个任务将一并删除，不可恢复）</span></div>` : ''}`,
     submitText: isEdit ? '保存' : '创建',
@@ -124,13 +136,13 @@ export function openColForm(key = null) {
       const icon = (d.icon || '📌').trim() || '📌';
       store.update(s => {
         if (isEdit) {
-          s.board.cols[key].name = name; s.board.cols[key].icon = icon;
-          const o = s.board.order.filter(x => x !== key); o.splice(Number(d.oidx), 0, key); s.board.order = o;
+          s.board.cols[key] = { name, icon };
+          const o = (s.board.order || []).filter(x => x !== key); o.splice(Number(d.oidx), 0, key); s.board.order = o;
         } else {
           let nk = 'c' + Date.now().toString(36);
           while (s.board.cols[nk]) nk = 'c' + Math.random().toString(36).slice(2, 7);
           s.board.cols[nk] = { name, icon };
-          const o = [...s.board.order]; o.splice(Number(d.oidx), 0, nk); s.board.order = o;
+          const o = [...(s.board.order || [])]; o.splice(Number(d.oidx), 0, nk); s.board.order = o;
         }
       });
       toast(isEdit ? '分区已更新' : '分区已创建', 'ok'); rerender();
@@ -148,11 +160,15 @@ export function openColForm(key = null) {
 
 export function openTaskForm(rec = null, col = 'personal') {
   const b = S().board;
+  const order = colOrder(b);
+  const curCol = rec?.col || col;
+  // 若任务原分区已失效（被云同步合并丢弃），落定到第一个可用分区
+  const safeCol = order.includes(curCol) ? curCol : (order[0] || 'personal');
   formModal({
     title: rec ? '编辑任务' : '新建任务',
     fields: [
       { key: 'title', label: '任务名称', required: true, span: 'full', value: rec?.title || '' },
-      { key: 'col', label: '所属分区', type: 'select', value: rec?.col || col, options: b.order.map(k => ({ v: k, t: b.cols[k].icon + ' ' + b.cols[k].name })) },
+      { key: 'col', label: '所属分区', type: 'select', value: rec ? safeCol : curCol, options: order.map(k => ({ v: k, t: colLabel(b, k) })) },
       { key: 'priority', label: '优先级', type: 'select', value: rec?.priority || 'mid', options: Object.entries(PRI).map(([v, o]) => ({ v, t: o.t + '优先级' })) },
       { key: 'due', label: '截止时间', type: 'datetime-local', value: rec?.due ? toLocalInput(rec.due) : '' },
       { key: 'remind', label: '同时创建日历提醒', type: 'checkbox', value: false },
@@ -193,7 +209,7 @@ function openDetail(id) {
   modal({
     title: t.title,
     body: `<div class="row" style="gap:8px;margin-bottom:10px">
-      <span class="chip">${b.cols[t.col].icon} ${b.cols[t.col].name}</span>
+      <span class="chip">${colLabel(b, t.col)}</span>
       <span class="chip ${PRI[t.priority]?.c}">${PRI[t.priority]?.t}优先级</span>
       ${t.due ? `<span class="chip gray">🕐 ${ymd(t.due)} ${hm(t.due)}（${fmtRel(t.due)}）</span>` : ''}
       ${t.done ? '<span class="chip ok">已归档</span>' : ''}</div>
@@ -230,8 +246,10 @@ function bindDnD() {
     if (dragId.startsWith('col:')) {
       const from = dragId.slice(4), to = col.dataset.col;
       store.update(s => {
-        const o = s.board.order.filter(x => x !== from);
-        o.splice(o.indexOf(to), 0, from); s.board.order = o;
+        let o = colOrder(s.board).filter(x => x !== from);
+        const ti = o.indexOf(to);
+        if (ti >= 0) o.splice(ti, 0, from); else o.push(from);
+        s.board.order = o;
       });
     } else {
       const target = e.target.closest('[data-task]');
@@ -312,5 +330,5 @@ function bindTouchDnD() {
 
 export function summary() {
   const b = S().board;
-  return b.order.map(k => ({ key: k, ...b.cols[k], total: b.tasks.filter(t => t.col === k).length, open: b.tasks.filter(t => t.col === k && !t.done).length }));
+  return colOrder(b).map(k => ({ key: k, icon: colIcon(b, k), name: colName(b, k), total: b.tasks.filter(t => t.col === k).length, open: b.tasks.filter(t => t.col === k && !t.done).length }));
 }

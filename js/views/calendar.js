@@ -68,7 +68,7 @@ export function openReminderForm(rec = null, preset = {}) {
       { key: 'repeat', label: '重复规则', type: 'select', value: rec?.repeat || 'none', options: REPEATS },
       { key: 'advance', label: '提前提醒', type: 'select', value: String(rec?.advance ?? 60), options: ADVANCES.map(a => ({ v: String(a.v), t: a.t })) },
       { key: 'toBoard', label: '同时一键加入看板', type: 'checkbox', value: false, hint: '创建提醒的同时，在看板生成一张同名任务卡' },
-      { key: 'boardCol', label: '看板分区', type: 'select', value: rec?.boardCol || 'personal', options: S().board.order.map(k => ({ v: k, t: S().board.cols[k].icon + ' ' + S().board.cols[k].name })) },
+      { key: 'boardCol', label: '看板分区', type: 'select', value: rec?.boardCol || 'personal', options: S().board.order.map(k => ({ v: k, t: (S().board.cols[k]?.icon || '📌') + ' ' + (S().board.cols[k]?.name || '未命名') })) },
       { key: 'boardTags', label: '看板标签', type: 'tagpick', span: 'full', suggest: BOARD_TAGS, value: rec?.boardTags || [], hint: '为该看板任务挑选标签，便于分类与筛选（默认带入本提醒的分类）' },
       { key: 'note', label: '备注', type: 'textarea', span: 'full', value: rec?.note || '', placeholder: '补充说明、链接等' }
     ],

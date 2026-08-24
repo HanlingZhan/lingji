@@ -445,12 +445,24 @@ export function mergeStates(local, remote) {
     });
     out[key] = [...m.values()];
   }
-  // 看板任务
+  // 看板任务（按 id 合并，记录级 LWW）
   const tm = new Map();
   [...(local.board?.tasks || []), ...(remote.board?.tasks || [])].forEach(t => {
     const p = tm.get(t.id); if (!p || (t.updatedAt || 0) >= (p.updatedAt || 0)) tm.set(t.id, t);
   });
-  out.board = { ...deepMerge(local.board, remote.board || {}), tasks: [...tm.values()] };
+  // 看板分区：cols 做并集（远端优先，本地独有的新分区必须保留）；
+  // order 取「远端顺序为准 + 本地多出的分区补末尾」，避免云端 pull 时把本地新建分区「吞噬」掉
+  const lboard = local.board || {}, rboard = remote.board || {};
+  const cols = {};
+  Object.keys(rboard.cols || {}).forEach(k => cols[k] = rboard.cols[k]);
+  Object.keys(lboard.cols || {}).forEach(k => { if (!cols[k]) cols[k] = lboard.cols[k]; });
+  const order = [];
+  const seen = new Set();
+  [...(rboard.order || []), ...(lboard.order || []), ...Object.keys(cols)].forEach(k => {
+    if (k === undefined || k === null || seen.has(k)) return;
+    order.push(k); seen.add(k);
+  });
+  out.board = { order, cols, tasks: [...tm.values()] };
   // 健身记录 / 生理周期记录（按 id 或 date 去重合并）
   for (const key of ['fitness.logs', 'cycle.records']) {
     const [parent, child] = key.split('.');

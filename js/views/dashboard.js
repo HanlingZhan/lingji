@@ -153,7 +153,7 @@ const W = {
       [...done.map(r => `<div class="list-item done"><span>✅</span><div style="flex:1"><div class="t">${esc(r.title)}</div>
         <div class="s">${r.doneAt ? fmtAgo(r.doneAt) : ymd(r.at)} · 提醒</div></div></div>`),
       ...dt.map(t => `<div class="list-item done"><span>✅</span><div style="flex:1"><div class="t">${esc(t.title)}</div>
-        <div class="s">${t.doneAt ? fmtAgo(t.doneAt) : ''} · ${S().board.cols[t.col].name}</div></div></div>`)].join('') || emptyBox('还没有完成的事项'),
+        <div class="s">${t.doneAt ? fmtAgo(t.doneAt) : ''} · ${S().board.cols?.[t.col]?.name || '个人事务'}</div></div></div>`)].join('') || emptyBox('还没有完成的事项'),
       '');
   }
 };
