@@ -25,6 +25,7 @@ function rerender() {
     <div class="spacer"></div>
     <button class="btn" id="expBtn">导出看板</button>
     <button class="btn" id="clearDone">清理已归档</button>
+    <button class="btn" id="addCol">＋ 新建分区</button>
     <button class="primary-btn" id="addTask">＋ 新建任务</button>
   </div>
   <div class="board" id="board">
@@ -32,6 +33,7 @@ function rerender() {
   </div>`;
 
   $('#addTask').onclick = () => openTaskForm();
+  $('#addCol').onclick = () => openColForm();
   $('#showDone').onchange = e => { showDone = e.target.checked; rerender(); };
   $('#clearDone').onclick = () => confirmDlg('确定清理所有已归档任务？此操作不可撤销。', () => {
     store.update(s => s.board.tasks = s.board.tasks.filter(t => !t.done)); toast('已清理'); rerender();
@@ -46,6 +48,8 @@ function rerender() {
     const c = e.target.closest('[data-chk]'); if (c) { toggle(c.dataset.chk); return; }
     const ed = e.target.closest('[data-open]'); if (ed) { openDetail(ed.dataset.open); return; }
     const ad = e.target.closest('[data-addcol]'); if (ad) { openTaskForm(null, ad.dataset.addcol); return; }
+    const ec = e.target.closest('[data-editcol]'); if (ec) { openColForm(ec.dataset.editcol); return; }
+    const dc = e.target.closest('[data-delcol]'); if (dc) { deleteCol(dc.dataset.delcol); return; }
   };
 }
 
@@ -58,7 +62,8 @@ function colHTML(k) {
       <span>${b.cols[k].icon}</span><b>${b.cols[k].name}</b>
       <span class="chip gray">${list.filter(t => !t.done).length}</span>
       <div class="spacer"></div>
-      <button class="btn sm" data-addcol="${k}">＋</button>
+      <button class="btn sm" data-addcol="${k}" title="在此分区新建任务">＋</button>
+      <button class="btn sm" data-editcol="${k}" title="编辑分区">⋯</button>
     </div>
     <div class="board-col-body" data-body="${k}">
       ${list.length ? list.map(taskHTML).join('') : `<div class="empty small">拖拽任务到此处</div>`}
@@ -86,6 +91,59 @@ function toggle(id) {
   const t = S().board.tasks.find(x => x.id === id);
   store.patch('board.tasks', id, { done: !t.done, doneAt: !t.done ? Date.now() : null });
   rerender();
+}
+
+const COL_ICONS = ['📌', '🎯', '💡', '🔥', '⭐', '📚', '🔬', '🏠', '🎖️', '🛒', '💼', '🏋️', '🎨', '🐱', '🌱', '📝', '🚀', '💬', '🧠', '🍀'];
+
+function deleteCol(key) {
+  const n = S().board.tasks.filter(t => t.col === key).length;
+  confirmDlg(`删除分区「${S().board.cols[key].name}」？该分区下的 ${n} 个任务将一并删除，不可恢复。`, () => {
+    store.update(s => {
+      delete s.board.cols[key];
+      s.board.order = s.board.order.filter(x => x !== key);
+      s.board.tasks = s.board.tasks.filter(t => t.col !== key);
+    });
+    toast('分区已删除', 'ok'); rerender();
+  });
+}
+
+export function openColForm(key = null) {
+  const b = S().board;
+  const isEdit = !!key;
+  formModal({
+    title: isEdit ? '编辑分区' : '新建分区',
+    fields: [
+      { key: 'name', label: '分区名称', required: true, span: 'full', value: isEdit ? b.cols[key].name : '', placeholder: '例如：毕业论文 / 健身计划' },
+      { key: 'icon', label: '图标（输入一个 emoji，或点击下方选择）', span: 'full', value: isEdit ? b.cols[key].icon : '📌' },
+      { key: 'oidx', label: '排序位置', type: 'select', value: isEdit ? String(b.order.indexOf(key)) : String(b.order.length), options: b.order.map((k, i) => ({ v: String(i), t: (i + 1) + ' · ' + b.cols[k].name })).concat([{ v: String(b.order.length), t: (b.order.length + 1) + ' · 末尾' }]) }
+    ],
+    extra: `<div class="small muted" style="margin-top:10px">点击选择图标：<div id="iconPick" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${COL_ICONS.map(ic => `<button type="button" class="chip" data-ic="${ic}" style="cursor:pointer;font-size:18px;padding:4px 8px">${ic}</button>`).join('')}</div></div>${isEdit ? `<div style="margin-top:14px;border-top:1px solid var(--bd,#eee);padding-top:12px"><button class="btn danger sm" id="delCol" data-delcol="${key}">🗑 删除该分区</button> <span class="small muted">（该分区下 ${b.tasks.filter(t => t.col === key).length} 个任务将一并删除，不可恢复）</span></div>` : ''}`,
+    submitText: isEdit ? '保存' : '创建',
+    onSubmit: d => {
+      const name = d.name.trim(); if (!name) { toast('请输入分区名称', 'err'); return; }
+      const icon = (d.icon || '📌').trim() || '📌';
+      store.update(s => {
+        if (isEdit) {
+          s.board.cols[key].name = name; s.board.cols[key].icon = icon;
+          const o = s.board.order.filter(x => x !== key); o.splice(Number(d.oidx), 0, key); s.board.order = o;
+        } else {
+          let nk = 'c' + Date.now().toString(36);
+          while (s.board.cols[nk]) nk = 'c' + Math.random().toString(36).slice(2, 7);
+          s.board.cols[nk] = { name, icon };
+          const o = [...s.board.order]; o.splice(Number(d.oidx), 0, nk); s.board.order = o;
+        }
+      });
+      toast(isEdit ? '分区已更新' : '分区已创建', 'ok'); rerender();
+    }
+  });
+  const del = document.getElementById('delCol');
+  if (del) del.onclick = () => deleteCol(key);
+  setTimeout(() => {
+    const inp = document.querySelector('[name="icon"]');
+    document.querySelectorAll('#iconPick [data-ic]').forEach(btn => {
+      btn.onclick = () => { if (inp) inp.value = btn.dataset.ic; };
+    });
+  }, 50);
 }
 
 export function openTaskForm(rec = null, col = 'personal') {
