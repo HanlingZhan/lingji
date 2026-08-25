@@ -51,7 +51,7 @@ function renderNav() {
 
 function updateBadges() {
   const st = S();
-  const todo = st.reminders.filter(r => !r.done && new Date(r.at) <= Date.now() + 3 * 86400000).length;
+  const todo = st.board.tasks.filter(t => !t.done && t.due && new Date(t.due) <= Date.now() + 3 * 86400000).length;
   const tasks = st.board.tasks.filter(t => !t.done).length;
   const setCnt = (k, n) => { const e = $(`[data-cnt="${k}"]`); if (!e) return; e.hidden = !n; e.textContent = n; };
   setCnt('calendar', todo); setCnt('board', tasks);

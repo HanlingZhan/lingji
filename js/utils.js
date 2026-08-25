@@ -41,8 +41,10 @@ export function fmtAgo(ts) {
 }
 
 // ---- 重复规则：返回给定基准时间之后的下一次发生 ----
+// item 兼容提醒（at）与看板任务（due）两种字段
 export function nextOccurrence(item, from = new Date()) {
-  const base = new Date(item.at);
+  const base = new Date(item.at || item.due);
+  if (isNaN(base)) return from;
   if (!item.repeat || item.repeat === 'none') return base;
   let d = new Date(base);
   let guard = 0;

@@ -2,7 +2,6 @@
 import { store, S } from '../store.js';
 import { $, $$, esc, ymd, hm, fmtRel, toLocalInput, diffDays, download, BOARD_TAGS, colLabel, colName, colIcon } from '../utils.js';
 import { formModal, toast, confirmDlg, emptyBox, modal } from '../ui.js';
-import { quickCreate } from './calendar.js';
 
 const PRI = { high: { t: '高', c: 'danger' }, mid: { t: '中', c: 'warn' }, low: { t: '低', c: 'ok' } };
 let host = null, showDone = false, dragId = null;
@@ -170,8 +169,7 @@ export function openTaskForm(rec = null, col = 'personal') {
       { key: 'title', label: '任务名称', required: true, span: 'full', value: rec?.title || '' },
       { key: 'col', label: '所属分区', type: 'select', value: rec ? safeCol : curCol, options: order.map(k => ({ v: k, t: colLabel(b, k) })) },
       { key: 'priority', label: '优先级', type: 'select', value: rec?.priority || 'mid', options: Object.entries(PRI).map(([v, o]) => ({ v, t: o.t + '优先级' })) },
-      { key: 'due', label: '截止时间', type: 'datetime-local', value: rec?.due ? toLocalInput(rec.due) : '' },
-      { key: 'remind', label: '同时创建日历提醒', type: 'checkbox', value: false },
+      { key: 'due', label: '截止时间（填写后自动上日历并触发通知）', type: 'datetime-local', value: rec?.due ? toLocalInput(rec.due) : '' },
       { key: 'tags', label: '标签（用于分类与筛选）', type: 'tagpick', span: 'full', suggest: BOARD_TAGS, value: rec?.tags || [] },
       { key: 'note', label: '详细备注', type: 'textarea', span: 'full', value: rec?.note || '' }
     ],
@@ -181,9 +179,9 @@ export function openTaskForm(rec = null, col = 'personal') {
     onSubmit: (d, close) => {
       const files = pendingFiles.length ? [...(rec?.files || []), ...pendingFiles] : (rec?.files || []);
       const data = { title: d.title, col: d.col, priority: d.priority, due: d.due || '', note: d.note, tags: d.tags || [], files };
+      // 任务/提醒同源：截止时间（due）由任务自身携带即可自动上日历并触发通知，无需额外创建提醒
       if (rec) store.patch('board.tasks', rec.id, data);
       else store.add('board.tasks', { ...data, done: false, order: Date.now() });
-      if (d.remind && d.due) quickCreate('【任务】' + d.title, d.due, d.col === 'course' ? 'course' : d.col === 'research' ? 'research' : 'life', { note: d.note });
       pendingFiles = [];
       toast('已保存', 'ok'); rerender();
     }

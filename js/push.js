@@ -85,7 +85,7 @@ async function post(path, data) {
 export function buildSnapshot() {
   const N = new Date();
   const from = startOfDay(addDays(N, -1));
-  const list = S().reminders.filter(r => !r.done).map(r => {
+  const list = S().board.tasks.filter(t => !t.done && t.due).map(r => {
     const at = nextOccurrence(r, from);
     const adv = (r.advance || 0) * 60000;
     const dueAt = at.getTime() - adv;

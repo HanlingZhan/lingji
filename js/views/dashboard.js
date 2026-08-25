@@ -1,6 +1,6 @@
 // ============ 首页工作台：可自由拖拽的模块化面板 ============
 import { store, S, DEFAULT_DASH } from '../store.js';
-import { $, $$, esc, ymd, hm, fmtRel, fmtAgo, diffDays, weekdayCN, TAGS, addDays } from '../utils.js';
+import { $, $$, esc, ymd, hm, fmtRel, fmtAgo, diffDays, weekdayCN, TAGS, addDays, colName } from '../utils.js';
 import { modal, toast, emptyBox, enableSort, confirmDlg } from '../ui.js';
 import { upcoming, longTerm, overdue, openReminderForm, openDetail } from './calendar.js';
 import { upcomingAnnis, anniInfo, predictNext } from './anniversary.js';
@@ -147,13 +147,11 @@ const W = {
       '<button class="btn sm" data-go="news">更多</button>');
   },
   done: () => {
-    const done = S().reminders.filter(r => r.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 6);
-    const dt = S().board.tasks.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 6);
-    return card('done', '✅ 已完成事项', `<span class="chip ok">${done.length + dt.length}</span>`,
-      [...done.map(r => `<div class="list-item done"><span>✅</span><div style="flex:1"><div class="t">${esc(r.title)}</div>
-        <div class="s">${r.doneAt ? fmtAgo(r.doneAt) : ymd(r.at)} · 提醒</div></div></div>`),
-      ...dt.map(t => `<div class="list-item done"><span>✅</span><div style="flex:1"><div class="t">${esc(t.title)}</div>
-        <div class="s">${t.doneAt ? fmtAgo(t.doneAt) : ''} · ${S().board.cols?.[t.col]?.name || '个人事务'}</div></div></div>`)].join('') || emptyBox('还没有完成的事项'),
+    const done = S().board.tasks.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 6);
+    const dt = done.slice(0, 6);
+    return card('done', '✅ 已完成事项', `<span class="chip ok">${done.length}</span>`,
+      dt.map(t => `<div class="list-item done"><span>✅</span><div style="flex:1"><div class="t">${esc(t.title)}</div>
+        <div class="s">${t.doneAt ? fmtAgo(t.doneAt) : ''} · ${t.kind === 'reminder' ? '提醒' : colName(S().board, t.col)}</div></div></div>`).join('') || emptyBox('还没有完成的事项'),
       '');
   }
 };
@@ -195,7 +193,7 @@ function bindEvents(el) {
     const hide = e.target.closest('[data-hide]');
     if (hide) { store.update(s => { s.dashboard.hidden = [...(s.dashboard.hidden || []), hide.dataset.hide]; }); toast('已隐藏，可在「自定义首页」恢复'); render(el); return; }
     const chk = e.target.closest('[data-done]');
-    if (chk) { const r = S().reminders.find(x => x.id === chk.dataset.done); store.patch('reminders', r.id, { done: true, doneAt: Date.now() }); render(el); return; }
+    if (chk) { const r = S().board.tasks.find(x => x.id === chk.dataset.done); store.patch('board.tasks', r.id, { done: true, doneAt: Date.now() }); render(el); return; }
     const rem = e.target.closest('[data-rem]'); if (rem) openDetail(rem.dataset.rem);
   };
 }

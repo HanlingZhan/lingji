@@ -143,7 +143,7 @@ function rerender() {
         <button class="btn danger" id="resetAll">清空所有数据</button>
       </div>
       <div class="stat-row">
-        <div class="stat"><b>${st.reminders.length}</b><span>提醒事项</span></div>
+        <div class="stat"><b>${st.board.tasks.filter(t => t.kind === 'reminder').length}</b><span>提醒事项</span></div>
         <div class="stat"><b>${st.board.tasks.length}</b><span>看板任务</span></div>
         <div class="stat"><b>${st.courses.length}</b><span>课程</span></div>
         <div class="stat"><b>${st.paperLib.length}</b><span>文库论文</span></div>

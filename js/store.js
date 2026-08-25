@@ -69,6 +69,28 @@ function defaults() {
   };
 }
 
+// 把旧版 reminders 全量迁入 board.tasks（带 kind:'reminder' 标记）；按 id 去重，避免重复迁移
+// 保留 reminders 字段不再使用；迁移后该数组保持原样（兼容老备份/云端旧格式，但不参与新数据流）
+function migrateReminders(state) {
+  if (!state || !Array.isArray(state.reminders) || !state.reminders.length) return;
+  const tasks = state.board?.tasks || (state.board = { order: ['personal', 'course', 'research', 'jk'], cols: { personal: { name: '个人事务', icon: '🏠' }, course: { name: '课程任务', icon: '📚' }, research: { name: '科研进度', icon: '🔬' }, jk: { name: 'JK', icon: '🎖️' } }, tasks: [] }).tasks;
+  const seen = new Set(tasks.map(t => t.id));
+  state.reminders.forEach((r, i) => {
+    if (!r || !r.id || seen.has(r.id)) return;
+    seen.add(r.id);
+    // 重复提醒等字段合并到看板任务结构；原非重复项保留原时间语义
+    tasks.push({
+      id: r.id, kind: 'reminder', title: r.title, done: !!r.done, doneAt: r.doneAt || null,
+      due: r.at ? new Date(r.at).toISOString() : '',       // 以原时间作截止时间
+      level: r.level || 'mid', col: 'personal', priority: r.level === 'high' ? 'high' : r.level === 'low' ? 'low' : 'mid',
+      advance: r.advance ?? 60, repeat: r.repeat || 'none',
+      note: r.note || '', tag: r.tag || 'other', createdAt: r.createdAt || now(), updatedAt: r.updatedAt || now(),
+      order: now() + i
+    });
+  });
+  // 迁移完成后清空旧字段，避免「删除任务后 pull 又复活」或重复迁移
+  state.reminders = [];
+}
 function deepMerge(base, over) {
   if (Array.isArray(base) || typeof base !== 'object' || base === null) return over === undefined ? base : over;
   const out = { ...base };
@@ -82,6 +104,10 @@ class Store extends EventTarget {
   constructor() {
     super();
     this.state = this.load();
+    // 一次性迁移：旧版「提醒事项」并入看板任务（kind:'reminder' 标记，防重复迁移）
+    // 之后新增/编辑提醒 = 新建/编辑看板任务，两个入口天然同源
+    migrateReminders(this.state);
+    localStorage.setItem(KEY, JSON.stringify(this.state));
     this.queue = JSON.parse(localStorage.getItem(QKEY) || '[]');
     this._t = null;
     window.addEventListener('online', () => this.flush());
@@ -136,9 +162,9 @@ class Store extends EventTarget {
   // ---- 云同步（多后端：generic / github / webdav，记录级 last-write-wins 合并） ----
   _countRecords() {
     const st = this.state;
-    return (st.reminders.length + st.anniversaries.length + st.board.tasks.length + st.courses.length +
+    return (st.board?.tasks?.length || 0) + st.anniversaries.length + st.courses.length +
       st.paperLib.length + st.people.length + st.gifts.length + st.jobTracking.length +
-      (st.fitness?.logs?.length || 0) + (st.cycle?.records?.length || 0));
+      (st.fitness?.logs?.length || 0) + (st.cycle?.records?.length || 0);
   }
   // 从云端拉取并合并到本机；返回本次新增的记录数（用于提示）
   async _doPull() {
@@ -233,7 +259,7 @@ class Store extends EventTarget {
           if (stj && stj._enc === 'v1') return { ok: true, msg: '连接正常：云端数据已启用端到端加密（密文存储，无法在此统计具体条数）' };
           if (stj) {
             const arrAt = (path) => { let o = stj; for (const p of path.split('.')) { o = o?.[p]; if (o === undefined) return []; } return Array.isArray(o) ? o : []; };
-            const cnt = ['reminders', 'board.tasks', 'courses', 'paperLib', 'anniversaries', 'fitness.logs', 'cycle.records']
+            const cnt = ['board.tasks', 'courses', 'paperLib', 'anniversaries', 'fitness.logs', 'cycle.records']
               .reduce((a, k) => a + arrAt(k).length, 0);
             const kb = (uploadSize(this.state) / 1024).toFixed(0);
             const warn = kb > 900 ? `　⚠️ 本机待上传 ${kb} KB，已超 GitHub 单文件上限，请先「恢复默认背景」` : `　本机待上传 ${kb} KB`;
@@ -261,7 +287,7 @@ class Store extends EventTarget {
     L.push('端点：' + (s.endpoint || '❌ 空'));
     L.push('令牌：' + mask(s.token));
     L.push('---- 本机数据 ----');
-    L.push(`提醒 ${st.reminders.length}｜看板 ${st.board.tasks.length}｜课程 ${st.courses.length}｜文库 ${st.paperLib.length}｜纪念日 ${st.anniversaries.length}｜健身 ${st.fitness?.logs?.length || 0}｜周期 ${st.cycle?.records?.length || 0}`);
+    L.push(`提醒 ${(st.reminders?.length || 0) + (st.board?.tasks?.filter(t => t.kind === 'reminder').length || 0)}｜看板 ${st.board?.tasks?.length || 0}｜课程 ${st.courses.length}｜文库 ${st.paperLib.length}｜纪念日 ${st.anniversaries.length}｜健身 ${st.fitness?.logs?.length || 0}｜周期 ${st.cycle?.records?.length || 0}`);
     L.push('合计 ' + this._countRecords() + ' 条　待上传 ' + (uploadSize(st) / 1024).toFixed(0) + ' KB');
     L.push('上次同步：' + (st.meta.lastSync ? new Date(st.meta.lastSync).toLocaleString() : '从未成功同步'));
     L.push('---- 云端探测 ----');
@@ -288,7 +314,7 @@ class Store extends EventTarget {
               L.push('☁️ 云端数据已加密：以密文形式存储（端到端加密），本工具不解析具体内容');
             } else {
               const at = p => { let x = o; for (const k of p.split('.')) { x = x?.[k]; if (x === undefined) return []; } return Array.isArray(x) ? x : []; };
-              L.push(`云端：提醒 ${at('reminders').length}｜看板 ${at('board.tasks').length}｜课程 ${at('courses').length}｜文库 ${at('paperLib').length}｜纪念日 ${at('anniversaries').length}｜健身 ${at('fitness.logs').length}｜周期 ${at('cycle.records').length}`);
+              L.push(`云端：提醒 ${(at('reminders').length || 0) + (at('board.tasks').filter(t => t?.kind === 'reminder').length || 0)}｜看板 ${at('board.tasks').length}｜课程 ${at('courses').length}｜文库 ${at('paperLib').length}｜纪念日 ${at('anniversaries').length}｜健身 ${at('fitness.logs').length}｜周期 ${at('cycle.records').length}`);
               L.push('云端最后写入设备：' + String(o.meta?.device || '未知').slice(0, 40));
               L.push('云端最后写入时间：' + (o.meta?.lastLocal ? new Date(o.meta.lastLocal).toLocaleString() : '未知'));
             }
@@ -463,7 +489,7 @@ export function uploadSize(state) {
 }
 
 // 记录级 last-write-wins 合并
-const LISTS = ['reminders', 'anniversaries', 'people', 'gifts', 'paperLib', 'courses', 'notifications', 'jobTracking'];
+const LISTS = ['anniversaries', 'people', 'gifts', 'paperLib', 'courses', 'notifications', 'jobTracking'];
 export function mergeStates(local, remote) {
   if (!remote || typeof remote !== 'object') return local;
   const out = deepMerge(local, {});
@@ -478,9 +504,13 @@ export function mergeStates(local, remote) {
     out[key] = [...m.values()];
   }
   // 看板任务（按 id 合并，记录级 LWW）
+  // 兼容：云端可能仍带有旧版 reminders（老备份/老云端格式），统一并入 tasks，保证一处数据源
+  const toTask = r => ({ id: r.id, kind: 'reminder', title: r.title, done: !!r.done, doneAt: r.doneAt || null, due: r.at ? new Date(r.at).toISOString() : '', col: 'personal', priority: r.level === 'high' ? 'high' : r.level === 'low' ? 'low' : 'mid', advance: r.advance ?? 60, repeat: r.repeat || 'none', note: r.note || '', tag: r.tag || 'other', createdAt: r.createdAt, updatedAt: r.updatedAt, order: now() });
   const tm = new Map();
-  [...(local.board?.tasks || []), ...(remote.board?.tasks || [])].forEach(t => {
-    const p = tm.get(t.id); if (!p || (t.updatedAt || 0) >= (p.updatedAt || 0)) tm.set(t.id, t);
+  [...(local.board?.tasks || []), ...(remote.board?.tasks || [])]
+    .concat((remote.reminders || []).map(toTask))
+    .forEach(t => {
+      const p = tm.get(t.id); if (!p || (t.updatedAt || 0) >= (p.updatedAt || 0)) tm.set(t.id, t);
   });
   // 看板分区：cols 做并集（远端优先，本地独有的新分区必须保留）；
   // order 取「远端顺序为准 + 本地多出的分区补末尾」，避免云端 pull 时把本地新建分区「吞噬」掉

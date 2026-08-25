@@ -35,8 +35,8 @@ function fired(key) {
 
 export function checkAll() {
   const st = S(); const N = new Date();
-  // 1. 提醒事项
-  st.reminders.filter(r => !r.done).forEach(r => {
+  // 1. 提醒事项 = 看板任务中有时间（due）且未归档的项（含 kind:'reminder' 与带 due 的普通任务）
+  (st.board.tasks || []).filter(t => !t.done && t.due).forEach(r => {
     const at = nextOccurrence(r, startOfDay(addDays(N, -1)));
     const adv = (r.advance || 0) * 60000;
     const key = `rem:${r.id}:${ymd(at)}${hm(at)}`;
