@@ -20,6 +20,15 @@ const ADVANCES = [
 ];
 
 // ---------- 数据查询 ----------
+// 看板分区下拉：order 优先，缺失的 cols 补末尾，取不到回退 personal（防云同步残留缺分区卡死）
+export function colOrderOpts(board = S().board) {
+  const seen = new Set();
+  const order = [];
+  [...(board?.order || []), ...Object.keys(board?.cols || {})].forEach(k => {
+    if (!k || seen.has(k)) return; seen.add(k); order.push(k);
+  });
+  return order.map(k => ({ v: k, t: (board?.cols?.[k]?.icon || '📌') + ' ' + (board?.cols?.[k]?.name || '未命名') }));
+}
 export function occurrencesOn(date, opt = {}) {
   const st = S(); const out = [];
   const d0 = startOfDay(date);
@@ -67,20 +76,28 @@ export function openReminderForm(rec = null, preset = {}) {
       { key: 'level', label: '重要等级（决定提醒强度）', type: 'select', value: rec?.level || 'mid', options: Object.entries(LEVELS).map(([v, o]) => ({ v, t: o.label })) },
       { key: 'repeat', label: '重复规则', type: 'select', value: rec?.repeat || 'none', options: REPEATS },
       { key: 'advance', label: '提前提醒', type: 'select', value: String(rec?.advance ?? 60), options: ADVANCES.map(a => ({ v: String(a.v), t: a.t })) },
-      { key: 'toBoard', label: '同时一键加入看板', type: 'checkbox', value: false, hint: '创建提醒的同时，在看板生成一张同名任务卡' },
-      { key: 'boardCol', label: '看板分区', type: 'select', value: rec?.boardCol || 'personal', options: S().board.order.map(k => ({ v: k, t: (S().board.cols[k]?.icon || '📌') + ' ' + (S().board.cols[k]?.name || '未命名') })) },
-      { key: 'boardTags', label: '看板标签', type: 'tagpick', span: 'full', suggest: BOARD_TAGS, value: rec?.boardTags || [], hint: '为该看板任务挑选标签，便于分类与筛选（默认带入本提醒的分类）' },
+      { key: 'toBoard', label: '同时一键加入看板', type: 'checkbox', value: !!rec?.boardId, hint: isEdit && rec?.boardId ? '已关联看板任务，勾选后编辑会同步更新看板卡' : '创建/保存提醒时，在看板生成（或同步更新）一张同名任务卡' },
+      { key: 'boardCol', label: '看板分区', type: 'select', value: rec?.boardCol || 'personal', options: colOrderOpts(S().board) },
       { key: 'note', label: '备注', type: 'textarea', span: 'full', value: rec?.note || '', placeholder: '补充说明、链接等' }
     ],
     submitText: isEdit ? '保存修改' : '创建',
     onSubmit: d => {
       const data = { ...d, at: new Date(d.at).toISOString(), advance: Number(d.advance) };
-      if (isEdit) store.patch('reminders', rec.id, data);
-      else store.add('reminders', { ...data, done: false });
-      // 一键加入看板：仅在「新建并勾选」时自动生成同名任务卡，避免编辑时重复建卡
-      if (d.toBoard && !isEdit) {
+      let savedId = rec?.id;
+      if (isEdit) { store.patch('reminders', rec.id, data); savedId = rec.id; }
+      else savedId = store.add('reminders', { ...data, done: false }).id;
+      // 一键加入看板：新建勾选→建卡；编辑勾选→若有对应卡则同步更新，没有则建卡（双向关联防重复）
+      if (d.toBoard) {
         const tags = (d.boardTags && d.boardTags.length) ? d.boardTags : [TAGS[d.tag]?.label || '其他'];
-        store.add('board.tasks', { title: d.title, col: d.boardCol, priority: d.level === 'high' ? 'high' : d.level === 'low' ? 'low' : 'mid', due: d.at || '', note: d.note, tags, done: false, order: Date.now() });
+        const taskData = { title: d.title, col: d.boardCol, priority: d.level === 'high' ? 'high' : d.level === 'low' ? 'low' : 'mid', due: d.at || '', note: d.note, tags, done: rec?.done || false, order: Date.now() };
+        const existing = rec?.boardId ? S().board.tasks.find(t => t.id === rec.boardId) : null;
+        if (existing) {
+          store.patch('board.tasks', existing.id, taskData);
+        } else {
+          const task = store.add('board.tasks', { ...taskData, done: false, reminderId: savedId });
+          const r = S().reminders.find(x => x.id === savedId);
+          if (r) store.patch('reminders', savedId, { boardId: task.id });
+        }
       }
       toast(isEdit ? '已更新' : (d.toBoard ? '提醒已创建并已加入看板' : '提醒已创建'), 'ok');
       requestPermission();
