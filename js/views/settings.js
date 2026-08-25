@@ -109,6 +109,7 @@ function rerender() {
         <button class="btn" id="selfChk">🩺 一键自检</button>
         <button class="btn" id="pullBtn">⬇ 仅从云端拉取</button>
         <button class="btn solid" id="pushBtn">🔄 立即双向同步</button>
+        <button class="btn" id="cloudPub" title="适用于 GitHub Pages 部署：直接读取同源 data/state.json 公开数据恢复（无需配令牌）">🌐 恢复线上数据</button>
         <span class="small muted">${st.meta.lastSync ? '上次同步 ' + fmtAgo(st.meta.lastSync) : '尚未同步'}</span>
       </div>
       <p class="small muted" style="margin-top:10px">
@@ -282,6 +283,37 @@ function rerender() {
     const r = await store.push();
     b.disabled = false;
     if (r.ok) toast(`双向同步完成：已合并云端 ${r.pulled || 0} 条并上传本机数据`, 'ok'); else toast('同步失败：' + r.msg, 'err');
+    rerender();
+  };
+  // 「🌐 恢复线上数据」：从 GitHub Pages 同源公开 data/state.json 读取并恢复（无需令牌）
+  $('#cloudPub').onclick = async () => {
+    const b = $('#cloudPub'); b.disabled = true; const old = b.textContent; b.textContent = '读取中…';
+    const r = await store.cloudInit();
+    b.disabled = false; b.textContent = old;
+    if (r.ok) toast(`已从线上公开数据恢复 ${r.added} 条`, 'ok');
+    else if (r.needsCrypto) {
+      // 需要加密密码：弹窗让用户填一次密码，尝试再恢复
+      modal({
+        title: '🔐 线上数据已加密',
+        body: `<p class="small muted">线上公开数据用端到端加密存储。请输入你设置云端同步时的<b>加密密码</b>，用于解密本机浏览器中的云端数据（仅用于本次解密，不会上传）。</p>
+        <label class="fld" style="margin-top:8px"><span>加密密码</span><input type="password" id="pubPass" placeholder="输入加密密码" autocomplete="current-password"></label>`,
+        foot: '<button class="btn" data-close>取消</button><button class="btn solid" id="pubGo">解密并恢复</button>',
+        onOpen: (b2, close) => {
+          document.getElementById('pubGo').onclick = async () => {
+            const pass = b2.querySelector('#pubPass').value;
+            if (!pass) return toast('请先输入加密密码', 'err');
+            // 临时在本次会话内使用该密码解密一次（不写进 settings，避免密码常驻）
+            store.update(s => { s.settings.sync.crypto = { enabled: true, pass }; });
+            const r2 = await store.cloudInit();
+            close();
+            if (r2.ok) toast(`已用密码恢复 ${r2.added} 条线上数据`, 'ok');
+            else toast('恢复失败：' + (r2.reason || '未知原因'), 'err');
+            rerender();
+          };
+        }
+      });
+    }
+    else toast('恢复失败：' + (r.reason || '未知原因'), 'err');
     rerender();
   };
   $('#expAll').onclick = () => { download(`ScholarHub备份_${ymd(new Date())}.json`, store.export()); toast('备份已导出', 'ok'); };

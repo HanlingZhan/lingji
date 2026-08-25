@@ -90,7 +90,14 @@ function closeDrawer() { document.body.classList.remove('drawer-open'); $('#side
 // 手机端切回前台 / 定时自动拉取，保证多端实时同步
 async function autoPull() {
   const s = S().settings.sync;
-  if (!s.enabled || !s.endpoint || !navigator.onLine) return;
+  if (!navigator.onLine) return;
+  if (!s.enabled || !s.endpoint) {
+    // 未配置同步：尝试从「线上公开数据」（GitHub Pages 同源 data/state.json）只读恢复/刷新
+    if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      try { await store.cloudPull(); go(current); } catch { }
+    }
+    return;
+  }
   try { await store.pull(); go(current); } catch { }
 }
 
@@ -171,9 +178,20 @@ async function boot() {
   checkAll();
   setInterval(checkAll, 60 * 1000);
   setInterval(updateSyncChip, 60 * 1000);
-  // 首次拉取云端
-  if (S().settings.sync.enabled && navigator.onLine) {
-    try { await store.pull(); toast('已从云端同步最新数据', 'ok'); go(current); } catch { }
+  // 首次拉取云端：已配置同步则走标准 pull；否则尝试从「线上公开数据」只读恢复（GitHub Pages）
+  if (navigator.onLine) {
+    if (S().settings.sync.enabled) {
+      try { await store.pull(); toast('已从云端同步最新数据', 'ok'); go(current); } catch { }
+    } else if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      try {
+        const r = await store.cloudInit();
+        if (r.ok) { toast(r.added > 0 ? '已从线上公开数据恢复 ' + r.added + ' 条' : '本地已最新', 'ok'); go(current); }
+        else if (r.needsCrypto) {
+          // 云端是加密的：提示用户去设置页填加密密码恢复（避免用户以为线上没数据）
+          toast('线上数据已加密，去「设置 → 恢复线上数据」填密码即可恢复', 'err');
+        }
+      } catch { }
+    }
   }
   // 切回前台 / 定时自动拉取，解决「网页加了内容手机看不到」的问题
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoPull(); });

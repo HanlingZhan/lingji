@@ -178,6 +178,38 @@ class Store extends EventTarget {
     })();
     return this._pushing;
   }
+  // —— 线上公开数据（GitHub Pages 同源 data/state.json）——
+  // GitHub Pages 部署的灵记与本地是完全独立的浏览器环境（独立 localStorage），
+  // 首次打开是空的。很多用户希望「打开线上版直接看到自己的事项」。
+  // 这里提供两条自助通道：HTTP 只读拉取 + 公开访问口令恢复。
+  // 返回 { ok, added, usedCache?, info? }
+  async cloudInit(silent = false) {
+    try {
+      const r = await fetch('./data/state.json', { cache: 'no-store' });
+      if (!r.ok) return { ok: false, reason: '线上暂无公开数据（HTTP ' + r.status + '）' };
+      let obj;
+      try { obj = await r.json(); } catch { return { ok: false, reason: '公开数据不是合法 JSON' }; }
+      if (!obj || typeof obj !== 'object') return { ok: false, reason: '公开数据为空' };
+      const before = this._countRecords();
+      // 解密：仅当密文且本机已配置（桌面用户在设置中启用加密并填同密码）
+      let remote = obj;
+      if (isEncrypted(obj)) {
+        const c = this.state.settings.sync.crypto;
+        if (!c || !c.enabled || !c.pass) return { ok: false, reason: '公开数据已加密，需在「设置 → 多端云同步」中启用加密并填入相同加密密码', needsCrypto: true };
+        try { remote = await decryptState(obj, c.pass); }
+        catch { return { ok: false, reason: '解密失败：加密密码不正确', needsCrypto: true }; }
+      }
+      this.state = mergeStates(this.state, remote);
+      const added = Math.max(0, this._countRecords() - before);
+      localStorage.setItem(KEY, JSON.stringify(this.state));
+      this.emit('sync');
+      return { ok: true, added, silent: !!silent };
+    } catch (e) { return { ok: false, reason: e.message }; }
+  }
+  // 前端版：拉取同源公开数据文件并合并（只读，不推送，供前面 cloudInit 复用）
+  async cloudPull() {
+    return this.cloudInit({ silent: true });
+  }
   // 连通性自检：返回可读的诊断结论（含云端当前记录条数）
   async diagnose() {
     const s = this.state.settings.sync;
