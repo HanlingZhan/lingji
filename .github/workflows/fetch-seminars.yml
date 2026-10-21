@@ -1,0 +1,57 @@
+name: 自动抓取交大计算机系讲座
+
+# 在 GitHub 服务器上定时抓取 cs.sjtu.edu.cn 的「学术活动」（讲座），
+# 写成 data/seminars.json 并提交，前端 seminars.html 读取渲染。
+# 与 fetch-feed.yml 同套约定：Node 20 + 提交并带 rebase 重试推送。
+on:
+  schedule:
+    # cron 用 UTC；下面两条对应北京时间约 09:30 与 15:30（避开整点高峰）
+    - cron: '30 1 * * *'
+    - cron: '30 7 * * *'
+  workflow_dispatch:        # 允许在 GitHub 网页手动点「Run workflow」立即抓一次
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lingji-seminars
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 准备 Node 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 抓取讲座
+        run: node scripts/fetch-seminars.mjs
+
+      - name: 提交抓取结果
+        run: |
+          git config user.name  "lingji-bot"
+          git config user.email "lingji-bot@users.noreply.github.com"
+          git add data/seminars.json
+          if git diff --cached --quiet; then
+            echo "讲座数据无变化，跳过提交"
+            exit 0
+          fi
+          git commit -m "chore(auto): 更新讲座 $(date -u +'%Y-%m-%d %H:%M') UTC"
+          # 同一仓库还承载着多端同步的 data/state.json，可能被 App 并发写入，
+          # 因此推送失败时先 rebase 再重试，避免把同步数据挤掉。
+          for i in 1 2 3; do
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then
+              echo "推送成功"
+              exit 0
+            fi
+            echo "第 $i 次推送失败，5 秒后重试…"
+            sleep 5
+          done
+          echo "推送连续失败" >&2
+          exit 1

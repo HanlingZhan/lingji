@@ -1,0 +1,206 @@
+{
+  "generatedAt": 1792561164335,
+  "generatedAtISO": "2026-10-21T05:39:24.335Z",
+  "source": "https://cs.sjtu.edu.cn/xshd.html",
+  "count": 22,
+  "seminars": [
+    {
+      "title": "全球午餐会｜2026秋第3期:LLM预训练及遗忘中的隐私漏洞",
+      "date": "2026-10-16",
+      "time": "2026.10.16 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "胡宏盛",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20261013/20261013085923.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1937.html"
+    },
+    {
+      "title": "ACM UbiComp/ISWC 2026",
+      "date": "2026-10-11",
+      "time": "2026.10.11-15",
+      "location": "上海市浦东新区滨江大道2727号上海国际会议中心",
+      "speaker": "",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20261007/20261007112808.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1929.html"
+    },
+    {
+      "title": "全球午餐会｜2026秋第2期:PyFEX：分析 Python 程序中隐藏的行为",
+      "date": "2026-09-24",
+      "time": "2026.09.24 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "王蒙",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260921/20260921133451.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1914.html"
+    },
+    {
+      "title": "全球午餐会｜2026秋第1期:全栈AI开源--从算力到智能体的技术共享",
+      "date": "2026-09-18",
+      "time": "2026.09.18 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "韩泽耀",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260915/20260915083641.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1895.html"
+    },
+    {
+      "title": "Spatiotemporal brain dynamics:organizational principles andcomputationalmechanisms",
+      "date": "2026-09-16",
+      "time": "2026.09.16 10:30",
+      "location": "SEIEE 3-414",
+      "speaker": "Prof. Pulin Gong",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260916/20260916084609.jpg",
+      "link": "https://cs.sjtu.edu.cn/xshd/1896.html"
+    },
+    {
+      "title": "Parallel Blockchains and Applications",
+      "date": "2026-09-15",
+      "time": "2026.09.15 13:30",
+      "location": "SEIEE 4-E Valley",
+      "speaker": "沈俞",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260910/20260910083610.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1877.html"
+    },
+    {
+      "title": "启智育才，计往开来 | 第29届全国高校计算机系主任/院长论坛",
+      "date": "2026-08-14",
+      "time": "2026.08.14-16",
+      "location": "上海市红松东路1116号虹桥祥源希尔顿酒店 主题：启智育才，计往开来：计算机学科群的守正与创新",
+      "speaker": "",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260520/20260520085041.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1706.html"
+    },
+    {
+      "title": "全球午餐会｜2026春第15期:AI 在游戏行业的深度应用",
+      "date": "2026-06-26",
+      "time": "2026.06.26 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "冷子昂",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260707/20260707135927.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1766.html"
+    },
+    {
+      "title": "全球午餐会｜2026春第14期:From Algorithms & RL to LLM-based Agents",
+      "date": "2026-06-12",
+      "time": "2026.06.12 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "熊国钧",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260610/20260610164638.jpg",
+      "link": "https://cs.sjtu.edu.cn/xshd/1731.html"
+    },
+    {
+      "title": "全球午餐会｜2026春第13期:面向未来科学计算的高性能数据压缩",
+      "date": "2026-06-05",
+      "time": "2026.06.05 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "刘锦阳",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260604/20260604104322.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1726.html"
+    },
+    {
+      "title": "全球午餐会｜2026春第12期:基于OpenClaw的下一代AIOS手机新范式",
+      "date": "2026-05-29",
+      "time": "2026.05.29 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "徐俊波",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260526/20260526102237.jpg",
+      "link": "https://cs.sjtu.edu.cn/xshd/1721.html"
+    },
+    {
+      "title": "脑机接口精准解码研究进展",
+      "date": "2026-05-26",
+      "time": "2026.05.26 10:30",
+      "location": "SEIEE 3-412",
+      "speaker": "伍冬睿",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260522/20260522102736.jpg",
+      "link": "https://cs.sjtu.edu.cn/xshd/1717.html"
+    },
+    {
+      "title": "Scalable Linkable Ring signatures for Privacy,Accountability,and Post-Quantum Security",
+      "date": "2026-05-25",
+      "time": "2026.05.25 14:00",
+      "location": "SEIEE 4-E Valley",
+      "speaker": "Man Ho Allen Au",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260522/20260522102833.jpg",
+      "link": "https://cs.sjtu.edu.cn/xshd/1716.html"
+    },
+    {
+      "title": "Challenges and Attempts When DeepLearning Meets BCl",
+      "date": "2026-05-22",
+      "time": "2026.05.22 10:00",
+      "location": "SEIEE 3-414",
+      "speaker": "Junhua Li",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260521/20260521153556.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1713.html"
+    },
+    {
+      "title": "全球午餐会｜2026春第11期:CANN见昇腾",
+      "date": "2026-05-22",
+      "time": "2026.05.22 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "何文博",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260521/20260521153332.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1712.html"
+    },
+    {
+      "title": "全球午餐会｜2026春第10期:Dwarkesh vs. 黄仁勋之辩的战术胜利与战略失策",
+      "date": "2026-05-15",
+      "time": "2026.05.15 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "李兆石",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260513/20260513101532.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1664.html"
+    },
+    {
+      "title": "全球午餐会｜2026春第9期: Scaling Embodied Intelligence in the Era of Generative Worlds",
+      "date": "2026-05-08",
+      "time": "2026.05.08 12:00",
+      "location": "SEIEE 4-414",
+      "speaker": "周云松",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260513/20260513101623.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1663.html"
+    },
+    {
+      "title": "全球午餐会｜2026春第8期: 让每个人都能创造世界",
+      "date": "2026-04-24",
+      "time": "2026.04.24 12:00",
+      "location": "SEIEE 4-414",
+      "speaker": "楚航",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20260422/20260422133618.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/1555.html"
+    },
+    {
+      "title": "上页",
+      "date": null,
+      "time": "",
+      "location": "",
+      "speaker": "",
+      "poster": "",
+      "link": "https://cs.sjtu.edu.cn/xshd/p1.html"
+    },
+    {
+      "title": "2",
+      "date": null,
+      "time": "",
+      "location": "",
+      "speaker": "",
+      "poster": "",
+      "link": "https://cs.sjtu.edu.cn/xshd/p2.html"
+    },
+    {
+      "title": "3",
+      "date": null,
+      "time": "",
+      "location": "",
+      "speaker": "",
+      "poster": "",
+      "link": "https://cs.sjtu.edu.cn/xshd/p3.html"
+    },
+    {
+      "title": "4",
+      "date": null,
+      "time": "",
+      "location": "",
+      "speaker": "",
+      "poster": "",
+      "link": "https://cs.sjtu.edu.cn/xshd/p4.html"
+    }
+  ]
+}
