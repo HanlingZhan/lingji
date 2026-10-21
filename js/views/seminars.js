@@ -48,15 +48,19 @@ function card(s, now) {
 
 function rerender() {
   if (!host) return;
+  // 样式必须挂在 document.head（而非视图容器内）——容器会被 innerHTML 重建，挂里面会被一并清掉导致样式全部失效
   if (!styled) {
-    host.insertAdjacentHTML('beforeend', `<style id="sm-style">
+    if (!document.getElementById('sm-style')) {
+      const st = document.createElement('style');
+      st.id = 'sm-style';
+      st.textContent = `
 .sm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .sm-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh);text-decoration:none;color:inherit;transition:transform .28s var(--out),box-shadow .28s var(--out)}
 .sm-card:hover{transform:translateY(-5px);box-shadow:var(--sh-lg)}
 .sm-card[data-up]{border-color:rgba(255,138,61,.55);box-shadow:0 2px 6px rgba(20,40,90,.05),0 14px 34px rgba(255,138,61,.16)}
 .sm-poster{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,var(--primary-100),var(--accent-050));overflow:hidden}
 .sm-poster img{width:100%;height:100%;object-fit:cover;display:block}
-.sm-noposter{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.5}
+.sm-noposter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.5}
 .sm-badge{position:absolute;top:10px;right:10px;padding:4px 11px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.3px;backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .sm-badge.up{background:var(--accent);color:#fff}
 .sm-badge.done{background:rgba(31,36,51,.5);color:#fff}
@@ -64,7 +68,10 @@ function rerender() {
 .sm-title{font-weight:600;font-size:15px;line-height:1.45;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .sm-meta{font-size:12.5px;color:var(--ink-2);display:flex;gap:6px;align-items:flex-start;line-height:1.5}
 .sm-meta b{color:var(--ink-1);font-weight:600}
-</style>`);
+@media (max-width:640px){.sm-grid{grid-template-columns:1fr 1fr;gap:10px}.sm-title{font-size:13.5px}}
+`;
+      document.head.appendChild(st);
+    }
     styled = true;
   }
   const all = cache.seminars;
