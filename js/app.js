@@ -10,6 +10,7 @@ import * as Calendar from './views/calendar.js';
 import * as Anniversary from './views/anniversary.js';
 import * as Papers from './views/papers.js';
 import * as News from './views/news.js';
+import * as Seminars from './views/seminars.js';
 import * as Words from './views/words.js';
 import * as Board from './views/board.js';
 import * as Schedule from './views/schedule.js';
@@ -24,6 +25,7 @@ export const ROUTES = {
   board: { icon: '🗂️', name: '事项看板', sub: '个人事务 · 课程任务 · 科研进度 · JK', mod: Board, group: '概览', tab: true },
   papers: { icon: '📄', name: '论文抓取', sub: 'arXiv / CVF / OpenReview / PwC / Scholar 定向聚合', mod: Papers, group: '科研', tab: false },
   news: { icon: '📡', name: 'AI 前沿资讯', sub: '行业动态 · 顶会节点 · 开源项目', mod: News, group: '科研', tab: false },
+  seminars: { icon: '🎓', name: '讲座', sub: '交大计算机系学术活动自动聚合', mod: Seminars, group: '科研', tab: false },
   schedule: { icon: '📚', name: '课程表', sub: '按周次录入 · Excel 批量导入 · 冲突检测', mod: Schedule, group: '学习', tab: true },
   jobs: { icon: '💼', name: '招聘资讯', sub: '日常大厂实习 · 2029 校招 · 我的追踪', mod: Jobs, group: '学习' },
   words: { icon: '🔤', name: '单词巧记', sub: '六级 / 雅思 / 托福 · 艾宾浩斯复习', mod: Words, group: '学习' },
