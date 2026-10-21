@@ -2,7 +2,7 @@
 import { $, esc, fmtAgo } from '../utils.js';
 import { emptyBox } from '../ui.js';
 
-let host = null, cache = { seminars: [], at: 0 }, loading = false, scope = 'all';
+let host = null, cache = { seminars: [], at: 0 }, loading = false, scope = 'all', styled = false;
 
 export function render(el) { host = el; rerender(); if (!cache.at) load(); }
 
@@ -28,15 +28,51 @@ function toDate(s) {
   return isNaN(d) ? null : d;
 }
 
+function card(s, now) {
+  const d = toDate(s.date);
+  const up = d ? d.getTime() >= now - 86400000 : false;
+  const poster = s.poster
+    ? `<img src="${esc(s.poster)}" loading="lazy" alt="${esc(s.title)}">`
+    : `<div class="sm-noposter">🗓️</div>`;
+  return `
+  <a class="sm-card" href="${esc(s.link)}" target="_blank" rel="noopener" ${up ? 'data-up' : ''}>
+    <div class="sm-poster">${poster}<span class="sm-badge ${up ? 'up' : 'done'}">${up ? '即将开始' : '已结束'}</span></div>
+    <div class="sm-body">
+      <div class="sm-title">${esc(s.title)}</div>
+      <div class="sm-meta">🗓️ <b>${esc(s.time || s.date || '时间待定')}</b></div>
+      ${s.location ? `<div class="sm-meta">📍 ${esc(s.location)}</div>` : ''}
+      ${s.speaker ? `<div class="sm-meta">🎤 ${esc(s.speaker)}</div>` : ''}
+    </div>
+  </a>`;
+}
+
 function rerender() {
   if (!host) return;
+  if (!styled) {
+    host.insertAdjacentHTML('beforeend', `<style id="sm-style">
+.sm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.sm-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh);text-decoration:none;color:inherit;transition:transform .28s var(--out),box-shadow .28s var(--out)}
+.sm-card:hover{transform:translateY(-5px);box-shadow:var(--sh-lg)}
+.sm-card[data-up]{border-color:rgba(255,138,61,.55);box-shadow:0 2px 6px rgba(20,40,90,.05),0 14px 34px rgba(255,138,61,.16)}
+.sm-poster{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,var(--primary-100),var(--accent-050));overflow:hidden}
+.sm-poster img{width:100%;height:100%;object-fit:cover;display:block}
+.sm-noposter{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.5}
+.sm-badge{position:absolute;top:10px;right:10px;padding:4px 11px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.3px;backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.sm-badge.up{background:var(--accent);color:#fff}
+.sm-badge.done{background:rgba(31,36,51,.5);color:#fff}
+.sm-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px}
+.sm-title{font-weight:600;font-size:15px;line-height:1.45;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sm-meta{font-size:12.5px;color:var(--ink-2);display:flex;gap:6px;align-items:flex-start;line-height:1.5}
+.sm-meta b{color:var(--ink-1);font-weight:600}
+</style>`);
+    styled = true;
+  }
   const all = cache.seminars;
-  const DAY = 86400000;
   const now = Date.now();
-  const upcoming = all.filter(s => { const d = toDate(s.date); return d ? d.getTime() >= now - DAY : false; });
+  const upcoming = all.filter(s => { const d = toDate(s.date); return d ? d.getTime() >= now - 86400000 : false; });
   const list = scope === 'upcoming' ? upcoming : all;
   const latest = all.map(s => s.date).filter(Boolean).sort().pop() || '';
-  const latestStale = latest && (now - ((toDate(latest) || new Date(0)).getTime())) > 2 * DAY;
+  const latestStale = latest && (now - ((toDate(latest) || new Date(0)).getTime())) > 2 * 86400000;
 
   host.innerHTML = `
   <div class="row" style="margin-bottom:14px">
@@ -49,25 +85,12 @@ function rerender() {
     <button class="primary-btn" id="reload" ${loading ? 'disabled' : ''}>${loading ? '加载中…' : '⟳ 刷新'}</button>
   </div>
 
-  ${latestStale ? `<div class="card" style="margin-bottom:14px"><div class="card-body small muted" style="padding:10px 16px">
-    ℹ️ 官网最新一条讲座为 <b>${esc(latest)}</b>，此后暂无新发布——数据已是实时抓取的最新状态，不是同步延迟。</div></div>` : ''}
+  ${latestStale ? `<div class="card" style="margin-bottom:14px;border-color:var(--accent-100);background:var(--accent-050)"><div class="card-body small" style="padding:11px 16px;color:var(--ink-1)">
+    ℹ️ 官网最新一条讲座为 <b>${esc(latest)}</b>，此后暂无新发布——数据已是实时抓取的最新状态，并非同步延迟。</div></div>` : ''}
 
   <div class="card"><div class="card-head"><h3>🎓 上海交通大学 · 计算机系讲座</h3><span class="chip gray">${scope === 'upcoming' ? '即将开始 ' + list.length : '共 ' + list.length + ' 条'}</span></div>
-    <div class="card-body" style="max-height:72vh;overflow:auto;display:flex;flex-direction:column;gap:10px">
-      ${list.length ? list.map(s => {
-        const d = toDate(s.date);
-        const up = d ? d.getTime() >= now - DAY : false;
-        return `
-      <div class="list-item" style="align-items:center;gap:14px;padding:12px 14px;border-radius:16px${up ? ';border:1px solid rgba(61,111,242,.35)' : ''}">
-        ${s.poster ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="flex:0 0 132px;display:block;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)"><img src="${esc(s.poster)}" loading="lazy" style="width:132px;height:90px;object-fit:cover;display:block"></a>` : ''}
-        <div style="flex:1;min-width:0">
-          <div class="t" style="font-size:15px;line-height:1.45"><a href="${esc(s.link)}" target="_blank" rel="noopener">${esc(s.title)}</a></div>
-          <div class="s" style="margin-top:5px">🗓 <b>${esc(s.time || s.date || '时间待定')}</b>${s.location ? ' &nbsp;📍 ' + esc(s.location) : ''}</div>
-          ${s.speaker ? `<div class="s" style="margin-top:2px">🎤 ${esc(s.speaker)}</div>` : ''}
-        </div>
-        <span class="chip ${up ? 'ok' : 'gray'}" style="flex:0 0 auto">${up ? '即将开始' : '已结束'}</span>
-      </div>`;
-      }).join('') : (loading
+    <div class="card-body" style="max-height:74vh;overflow:auto">
+      ${list.length ? `<div class="sm-grid">${list.map(s => card(s, now)).join('')}</div>` : (loading
         ? '<div class="empty">加载中…</div>'
         : scope === 'upcoming'
           ? `<div class="empty">近期没有新讲座（官网最新：${esc(latest || '—')}）<br><button class="btn sm" id="seeAll" style="margin-top:10px">查看全部 ${all.length} 条</button></div>`
