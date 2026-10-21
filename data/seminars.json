@@ -1,8 +1,8 @@
 {
-  "generatedAt": 1792561164335,
-  "generatedAtISO": "2026-10-21T05:39:24.335Z",
+  "generatedAt": 1792564892398,
+  "generatedAtISO": "2026-10-21T06:41:32.398Z",
   "source": "https://cs.sjtu.edu.cn/xshd.html",
-  "count": 22,
+  "count": 18,
   "seminars": [
     {
       "title": "全球午餐会｜2026秋第3期:LLM预训练及遗忘中的隐私漏洞",
@@ -165,42 +165,6 @@
       "speaker": "楚航",
       "poster": "https://cs.sjtu.edu.cn/upload/image/20260422/20260422133618.png",
       "link": "https://cs.sjtu.edu.cn/xshd/1555.html"
-    },
-    {
-      "title": "上页",
-      "date": null,
-      "time": "",
-      "location": "",
-      "speaker": "",
-      "poster": "",
-      "link": "https://cs.sjtu.edu.cn/xshd/p1.html"
-    },
-    {
-      "title": "2",
-      "date": null,
-      "time": "",
-      "location": "",
-      "speaker": "",
-      "poster": "",
-      "link": "https://cs.sjtu.edu.cn/xshd/p2.html"
-    },
-    {
-      "title": "3",
-      "date": null,
-      "time": "",
-      "location": "",
-      "speaker": "",
-      "poster": "",
-      "link": "https://cs.sjtu.edu.cn/xshd/p3.html"
-    },
-    {
-      "title": "4",
-      "date": null,
-      "time": "",
-      "location": "",
-      "speaker": "",
-      "poster": "",
-      "link": "https://cs.sjtu.edu.cn/xshd/p4.html"
     }
   ]
 }

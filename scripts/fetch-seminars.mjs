@@ -60,9 +60,13 @@ async function main() {
     const hrefM = attrs.match(/href="([^"]*)"/i);
     if (!hrefM) continue;
     const href = hrefM[1];
-    if (!/\/xshd\//.test(href)) continue;
+    // 只收真正的讲座详情页（/xshd/<数字id>.html，id 至少 3 位）；
+    // 排除分页链接（/xshd/p1.html、上页/下页/纯数字标题）
+    const idM = href.match(/\/xshd\/(\d{3,})\.html/i);
+    if (!idM) continue;
     const txt = inner.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     if (!txt) continue;
+    if (/^[0-9]+$/.test(txt) || txt === '上页' || txt === '下页') continue;
     const link = href.startsWith('http') ? href : BASE + '/' + href.replace(/^\//, '');
     if (seen.has(link)) continue;
     seen.add(link);
