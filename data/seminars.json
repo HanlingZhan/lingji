@@ -1,9 +1,18 @@
 {
-  "generatedAt": 1793024919839,
-  "generatedAtISO": "2026-10-26T14:28:39.839Z",
+  "generatedAt": 1793519046350,
+  "generatedAtISO": "2026-11-01T07:44:06.350Z",
   "source": "https://cs.sjtu.edu.cn/xshd.html",
   "count": 18,
   "seminars": [
+    {
+      "title": "《情感脑机接口：从神经机制、基础模型到临床应用》学术研讨会",
+      "date": "2026-11-07",
+      "time": "2026.11.07",
+      "location": "上海交通大学闵行校区上院 100 号（伍威权堂） 主题：2026上海交通大学《情感脑机接口：从神经机制、基础模型到临床应用》学术研讨会暨上海市教委未来领域学科建设《脑机接口》项目启动会",
+      "speaker": "",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20261029/20261029133441.jpg",
+      "link": "https://cs.sjtu.edu.cn/xshd/1995.html"
+    },
     {
       "title": "全球午餐会｜2026秋第3期:LLM预训练及遗忘中的隐私漏洞",
       "date": "2026-10-16",
@@ -156,15 +165,6 @@
       "speaker": "周云松",
       "poster": "https://cs.sjtu.edu.cn/upload/image/20260513/20260513101623.png",
       "link": "https://cs.sjtu.edu.cn/xshd/1663.html"
-    },
-    {
-      "title": "全球午餐会｜2026春第8期: 让每个人都能创造世界",
-      "date": "2026-04-24",
-      "time": "2026.04.24 12:00",
-      "location": "SEIEE 4-414",
-      "speaker": "楚航",
-      "poster": "https://cs.sjtu.edu.cn/upload/image/20260422/20260422133618.png",
-      "link": "https://cs.sjtu.edu.cn/xshd/1555.html"
     }
   ]
 }
