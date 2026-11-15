@@ -1,6 +1,6 @@
 {
-  "generatedAt": 1794147979850,
-  "generatedAtISO": "2026-11-08T14:26:19.850Z",
+  "generatedAt": 1794729616918,
+  "generatedAtISO": "2026-11-15T08:00:16.918Z",
   "source": "https://cs.sjtu.edu.cn/xshd.html",
   "count": 18,
   "seminars": [
@@ -12,6 +12,33 @@
       "speaker": "",
       "poster": "https://cs.sjtu.edu.cn/upload/image/20261029/20261029133441.jpg",
       "link": "https://cs.sjtu.edu.cn/xshd/1995.html"
+    },
+    {
+      "title": "全球午餐会｜2026秋第6期:分析量子性质测试复杂度的统一框架",
+      "date": "2026-11-04",
+      "time": "2026.11.04 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "王启圣",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20261109/20261109155649.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/2034.html"
+    },
+    {
+      "title": "全球午餐会｜2026秋第5期:面向真实场景的视觉质量理解与高效增强",
+      "date": "2026-10-30",
+      "time": "2026.10.30 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "陈铮",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20261109/20261109154939.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/2033.html"
+    },
+    {
+      "title": "全球午餐会｜2026秋第4期:大语言模型的优化方法",
+      "date": "2026-10-23",
+      "time": "2026.10.23 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "司翀杰",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20261109/20261109154804.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/2032.html"
     },
     {
       "title": "全球午餐会｜2026秋第3期:LLM预训练及遗忘中的隐私漏洞",
@@ -138,33 +165,6 @@
       "speaker": "Junhua Li",
       "poster": "https://cs.sjtu.edu.cn/upload/image/20260521/20260521153556.png",
       "link": "https://cs.sjtu.edu.cn/xshd/1713.html"
-    },
-    {
-      "title": "全球午餐会｜2026春第11期:CANN见昇腾",
-      "date": "2026-05-22",
-      "time": "2026.05.22 12:00",
-      "location": "SEIEE 3-414",
-      "speaker": "何文博",
-      "poster": "https://cs.sjtu.edu.cn/upload/image/20260521/20260521153332.png",
-      "link": "https://cs.sjtu.edu.cn/xshd/1712.html"
-    },
-    {
-      "title": "全球午餐会｜2026春第10期:Dwarkesh vs. 黄仁勋之辩的战术胜利与战略失策",
-      "date": "2026-05-15",
-      "time": "2026.05.15 12:00",
-      "location": "SEIEE 3-414",
-      "speaker": "李兆石",
-      "poster": "https://cs.sjtu.edu.cn/upload/image/20260513/20260513101532.png",
-      "link": "https://cs.sjtu.edu.cn/xshd/1664.html"
-    },
-    {
-      "title": "全球午餐会｜2026春第9期: Scaling Embodied Intelligence in the Era of Generative Worlds",
-      "date": "2026-05-08",
-      "time": "2026.05.08 12:00",
-      "location": "SEIEE 4-414",
-      "speaker": "周云松",
-      "poster": "https://cs.sjtu.edu.cn/upload/image/20260513/20260513101623.png",
-      "link": "https://cs.sjtu.edu.cn/xshd/1663.html"
     }
   ]
 }
