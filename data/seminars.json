@@ -1,9 +1,18 @@
 {
-  "generatedAt": 1794754503101,
-  "generatedAtISO": "2026-11-15T14:55:03.101Z",
+  "generatedAt": 1794907472583,
+  "generatedAtISO": "2026-11-17T09:24:32.583Z",
   "source": "https://cs.sjtu.edu.cn/xshd.html",
   "count": 18,
   "seminars": [
+    {
+      "title": "全球午餐会｜2026秋第7期:自动驾驶世界模型的场景生成与闭环评估",
+      "date": "2026-11-13",
+      "time": "2026.11.13 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "李博涵",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20261116/20261116094750.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/2054.html"
+    },
     {
       "title": "《情感脑机接口：从神经机制、基础模型到临床应用》学术研讨会",
       "date": "2026-11-07",
@@ -15,8 +24,8 @@
     },
     {
       "title": "全球午餐会｜2026秋第6期:分析量子性质测试复杂度的统一框架",
-      "date": "2026-11-04",
-      "time": "2026.11.04 12:00",
+      "date": "2026-11-06",
+      "time": "2026.11.06 12:00",
       "location": "SEIEE 3-414",
       "speaker": "王启圣",
       "poster": "https://cs.sjtu.edu.cn/upload/image/20261109/20261109155649.png",
@@ -156,15 +165,6 @@
       "speaker": "Man Ho Allen Au",
       "poster": "https://cs.sjtu.edu.cn/upload/image/20260522/20260522102833.jpg",
       "link": "https://cs.sjtu.edu.cn/xshd/1716.html"
-    },
-    {
-      "title": "Challenges and Attempts When DeepLearning Meets BCl",
-      "date": "2026-05-22",
-      "time": "2026.05.22 10:00",
-      "location": "SEIEE 3-414",
-      "speaker": "Junhua Li",
-      "poster": "https://cs.sjtu.edu.cn/upload/image/20260521/20260521153556.png",
-      "link": "https://cs.sjtu.edu.cn/xshd/1713.html"
     }
   ]
 }
