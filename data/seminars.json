@@ -1,9 +1,18 @@
 {
-  "generatedAt": 1795461888413,
-  "generatedAtISO": "2026-11-23T19:24:48.413Z",
+  "generatedAt": 1795600772566,
+  "generatedAtISO": "2026-11-25T09:59:32.566Z",
   "source": "https://cs.sjtu.edu.cn/xshd.html",
   "count": 18,
   "seminars": [
+    {
+      "title": "全球午餐会｜2026秋第9期:从模型到行动：具身智能推理系统的设计与优化",
+      "date": "2026-11-27",
+      "time": "2026.11.27 12:00",
+      "location": "SEIEE 3-414",
+      "speaker": "周楷竣",
+      "poster": "https://cs.sjtu.edu.cn/upload/image/20261125/20261125154027.png",
+      "link": "https://cs.sjtu.edu.cn/xshd/2084.html"
+    },
     {
       "title": "全球午餐会｜2026秋第8期:广义蒸馏视角下的多模态大模型后训练",
       "date": "2026-11-20",
@@ -156,15 +165,6 @@
       "speaker": "徐俊波",
       "poster": "https://cs.sjtu.edu.cn/upload/image/20260526/20260526102237.jpg",
       "link": "https://cs.sjtu.edu.cn/xshd/1721.html"
-    },
-    {
-      "title": "脑机接口精准解码研究进展",
-      "date": "2026-05-26",
-      "time": "2026.05.26 10:30",
-      "location": "SEIEE 3-412",
-      "speaker": "伍冬睿",
-      "poster": "https://cs.sjtu.edu.cn/upload/image/20260522/20260522102736.jpg",
-      "link": "https://cs.sjtu.edu.cn/xshd/1717.html"
     }
   ]
 }
